@@ -393,6 +393,7 @@ int main(int argc, char** argv) {
 	loadDemoTextures(executableDirectory);
 
 	loadFontLogo();
+	loadFontEndTitles();
 
 
 	if (!playSound(executableDirectory + "/assets/Introsound.aiff", &introAudioProcess)) printf("Warnung: Introsound.aiff konnte nicht gestartet werden.\n");
@@ -400,8 +401,11 @@ int main(int argc, char** argv) {
 
 	demoStartMilliseconds = GetMilliseconds();
 
+	// Wichtig: && nicht ||
+	// Alt: while (!ESC || quit) → sobald update() true liefert, läuft die
+	// Schleife endlos weiter (quit bleibt true, Bedingung immer erfüllt).
 	bool quit = false;
-	while(!keyboard[KEY_ESCAPE] || quit) {
+	while (!keyboard[KEY_ESCAPE] && !quit) {
 		quit = update();
 		UpdateGFXsystem();
 	}
