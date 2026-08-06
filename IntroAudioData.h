@@ -1,0 +1,33 @@
+#ifndef INTRO_AUDIO_DATA_H
+#define INTRO_AUDIO_DATA_H
+
+/*
+ * RMS-Huellkurve von Introsound.mp3, mit 60 Werten pro Sekunde.
+ * Sie wird offline erzeugt, damit auf dem Apple TV kein MP3-Decoder fuer
+ * die Visualisierung und keine FFT zur Laufzeit noetig ist.
+ */
+static const float INTRO_ENVELOPE_HZ = 60.0f;
+static const float INTRO_DURATION_SECONDS = 2.481633f;
+static const float introEnvelope[] =
+{
+	0.0004f, 0.0082f, 0.0188f, 0.9463f, 0.8442f, 0.9432f, 0.8968f, 0.3261f, 0.4082f, 0.8869f,
+	0.9471f, 0.8873f, 0.6519f, 0.2038f, 0.7699f, 0.9117f, 0.6803f, 0.9070f, 1.0000f, 0.7500f,
+	0.3025f, 0.3945f, 0.8442f, 0.9904f, 0.8182f, 0.7842f, 0.2386f, 0.6016f, 0.7384f, 0.8864f,
+	0.9109f, 0.7900f, 0.2898f, 0.2740f, 0.8360f, 0.8399f, 0.8275f, 0.6830f, 0.2183f, 0.3740f,
+	0.6903f, 0.8758f, 0.6598f, 0.6118f, 0.1731f, 0.5473f, 0.5730f, 0.6724f, 0.5989f, 0.4890f,
+	0.1504f, 0.4839f, 0.5114f, 0.6995f, 0.5414f, 0.6085f, 0.1827f, 0.4219f, 0.4979f, 0.6753f,
+	0.5417f, 0.5901f, 0.1651f, 0.4089f, 0.5116f, 0.6403f, 0.5870f, 0.4541f, 0.1324f, 0.3966f,
+	0.5438f, 0.6139f, 0.5626f, 0.4280f, 0.1336f, 0.4005f, 0.5633f, 0.6368f, 0.6014f, 0.4430f,
+	0.1303f, 0.3980f, 0.5615f, 0.5977f, 0.5847f, 0.5339f, 0.1779f, 0.3682f, 0.5590f, 0.6010f,
+	0.5644f, 0.4648f, 0.1387f, 0.3251f, 0.5493f, 0.5791f, 0.6250f, 0.4903f, 0.1573f, 0.3934f,
+	0.5314f, 0.5512f, 0.6050f, 0.5096f, 0.1629f, 0.3594f, 0.4521f, 0.6278f, 0.5090f, 0.4717f,
+	0.1226f, 0.4127f, 0.4799f, 0.6330f, 0.5144f, 0.4602f, 0.1289f, 0.4282f, 0.4451f, 0.6253f,
+	0.5296f, 0.5195f, 0.1447f, 0.3033f, 0.5538f, 0.5951f, 0.5108f, 0.4858f, 0.1272f, 0.4404f,
+	0.4646f, 0.5578f, 0.5094f, 0.4843f, 0.1264f, 0.4426f, 0.5488f, 0.5965f, 0.5546f, 0.5266f,
+	0.1439f, 0.1700f, 0.6658f, 0.4842f, 0.3758f, 0.0750f, 0.0003f
+};
+
+static const int INTRO_ENVELOPE_COUNT =
+	(int)(sizeof(introEnvelope) / sizeof(introEnvelope[0]));
+
+#endif
