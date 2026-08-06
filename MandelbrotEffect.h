@@ -7,6 +7,10 @@
 #ifdef __APPLE__
 #include <OpenGL/gl.h>
 #endif
+#ifdef _WIN32
+    #include <windows.h>
+    #include <GL/gl.h>
+#endif
 
 const int MANDELBROT_TEXTURE_COUNT = 20;
 

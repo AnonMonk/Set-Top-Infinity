@@ -1,6 +1,9 @@
 #ifndef FONT_H
 #define FONT_H
 
+
+#include <cstdint>
+
 typedef struct
 {
     void *data;

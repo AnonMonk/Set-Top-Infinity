@@ -15,6 +15,10 @@
 #include <OpenGL/gl.h>
 #include <mach-o/dyld.h>
 #endif
+#ifdef _WIN32
+    #include <windows.h>
+    #include <GL/gl.h>
+#endif
 
 
 #include "vipgfx.h"
@@ -84,10 +88,12 @@ string getExecutableDir(char** argv) {
 
 
 void stopSound(pid_t* process) {
+#ifndef _WIN32
 	if (*process > 0) {
 		kill(*process, SIGTERM);
 		*process = -1;
 	}
+#endif
 }
 
 void stopAllAudio() {
