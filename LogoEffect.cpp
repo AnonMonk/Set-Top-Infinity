@@ -331,7 +331,7 @@ namespace
 
 
 void loadFontLogo() {
-	loadFont("./assets/arial.ttf", 64, &logoFont);
+	loadFont("./assets/corbel.ttf", 64, &logoFont);
 }
 
 void drawLogoIntroEffect(
