@@ -31,12 +31,18 @@ namespace
 		float bodyEndY;
 	};
 
+	// Muss zu openGLcontext(1280, 720) und glOrtho passen.
+	// vscreen.width/height ist im OpenGL-Pfad (bes. Windows) oft 0
+	// und darf NICHT für die 2D-Zentrierung verwendet werden.
+	const float kScreenW = 1280.0f;
+	const float kScreenH = 720.0f;
+
 	void begin2D()
 	{
 		glMatrixMode(GL_PROJECTION);
 		glPushMatrix();
 		glLoadIdentity();
-		glOrtho(0, vscreen.width, vscreen.height, 0, -1, 1);
+		glOrtho(0.0, kScreenW, kScreenH, 0.0, -1.0, 1.0);
 
 		glMatrixMode(GL_MODELVIEW);
 		glPushMatrix();
@@ -316,9 +322,8 @@ namespace
 
 	float logoScale()
 	{
-		int w = vscreen.width;
-		int h = vscreen.height;
-		return (w <= 400 || h <= 300) ? 0.6f : 2.0f;
+		// feste Demo-Auflösung 1280x720 → volle Logo-Größe
+		return 2.0f;
 	}
 }
 
@@ -339,15 +344,13 @@ void drawLogoIntroEffect(
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	begin2D();
 
-	int w = vscreen.width;
-	int h = vscreen.height;
 	float scale = logoScale();
 
 	drawOscFishLogo(
 		headTexture,
 		tailTexture,
-		w * 0.5f,
-		h * 0.5f,
+		kScreenW * 0.5f,
+		kScreenH * 0.5f,
 		scale,
 		animTime
 	);
@@ -371,8 +374,6 @@ void drawLogoTransitionEffect(
 	drawRotozoomerBase(rotoTexture, rotoAnimTime);
 	begin2D();
 
-	int w = vscreen.width;
-	int h = vscreen.height;
 	float scale = logoScale();
 	float progress = (duration > 0.0f) ? animTime / duration : 0.0f;
 	if (progress < 0.0f) progress = 0.0f;
@@ -384,7 +385,7 @@ void drawLogoTransitionEffect(
 	float logoShiftX =
 		sinf(animTime * 9.0f) * (4.0f + eased * 16.0f);
 	LogoLayout layout =
-		getLogoLayout(w * 0.5f + logoShiftX, h * 0.5f, scale);
+		getLogoLayout(kScreenW * 0.5f + logoShiftX, kScreenH * 0.5f, scale);
 
 	drawTexturedQuadWavy(
 		headTexture,
