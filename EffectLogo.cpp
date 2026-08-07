@@ -1,7 +1,7 @@
-#include "LogoEffect.h"
+#include "EffectLogo.h"
 
 #include "IntroAudioData.h"
-#include "RotozoomEffect.h"
+#include "EffectRotozoom.h"
 
 #include <cmath>
 #include <cstdio>

@@ -1,5 +1,5 @@
-#ifndef STARFIELD_EFFECT_H
-#define STARFIELD_EFFECT_H
+#ifndef EFFECT_TWISTER_H
+#define EFFECT_TWISTER_H
 
 #ifdef __linux__
 #include <GL/gl.h>
@@ -12,6 +12,6 @@
     #include <GL/gl.h>
 #endif
 
-void drawStarfieldEffect(float animTime, float duration);
+void drawTwisterEffect(float animTime);
 
 #endif

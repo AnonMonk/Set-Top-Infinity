@@ -3,13 +3,13 @@
 # =========================
 
 SRC = main.cpp \
-      EndTitlesEffect.cpp \
-      LogoEffect.cpp \
-      MandelbrotEffect.cpp \
-      RotozoomEffect.cpp \
-      StarfieldEffect.cpp \
-      TunnelEffect.cpp \
-      TwisterEffect.cpp
+      EffectEndTitles.cpp \
+      EffectLogo.cpp \
+      EffectMandelbrot.cpp \
+      EffectRotozoom.cpp \
+      EffectStarfield.cpp \
+      EffectTunnel.cpp \
+      EffectTwister.cpp
 
 NAME = demo
 

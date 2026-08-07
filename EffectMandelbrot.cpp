@@ -1,4 +1,4 @@
-#include "MandelbrotEffect.h"
+#include "EffectMandelbrot.h"
 
 #include <cmath>
 

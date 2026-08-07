@@ -1,5 +1,5 @@
-#ifndef END_TITLES_EFFECT_H
-#define END_TITLES_EFFECT_H
+#ifndef EFFECT_END_TITLES_H
+#define EFFECT_END_TITLES_H
 
 void loadFontEndTitles();
 void drawCreditsEffect(float animTime);

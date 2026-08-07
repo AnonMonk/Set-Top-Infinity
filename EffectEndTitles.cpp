@@ -1,4 +1,4 @@
-#include "EndTitlesEffect.h"
+#include "EffectEndTitles.h"
 
 #ifdef __linux__
 #include <GL/gl.h>

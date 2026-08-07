@@ -1,5 +1,5 @@
-#ifndef TWISTER_EFFECT_H
-#define TWISTER_EFFECT_H
+#ifndef EFFECT_ROTOZOOM_H
+#define EFFECT_ROTOZOOM_H
 
 #ifdef __linux__
 #include <GL/gl.h>
@@ -12,6 +12,7 @@
     #include <GL/gl.h>
 #endif
 
-void drawTwisterEffect(float animTime);
+void drawRotozoomerEffect(GLuint texture, float animTime);
+void drawRotozoomerBase(GLuint texture, float animTime);
 
 #endif

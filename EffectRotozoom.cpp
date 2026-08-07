@@ -1,4 +1,4 @@
-#include "RotozoomEffect.h"
+#include "EffectRotozoom.h"
 
 #include <cmath>
 #include "vipgfx.h"

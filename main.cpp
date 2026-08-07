@@ -27,13 +27,13 @@
 #include "glTTF.h"
 #include "gettime.h"
 
-#include "EndTitlesEffect.h"
-#include "LogoEffect.h"
-#include "MandelbrotEffect.h"
-#include "RotozoomEffect.h"
-#include "StarfieldEffect.h"
-#include "TunnelEffect.h"
-#include "TwisterEffect.h"
+#include "EffectEndTitles.h"
+#include "EffectLogo.h"
+#include "EffectMandelbrot.h"
+#include "EffectRotozoom.h"
+#include "EffectStarfield.h"
+#include "EffectTunnel.h"
+#include "EffectTwister.h"
 
 #define playaudio false
 

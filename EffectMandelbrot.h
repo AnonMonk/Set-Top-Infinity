@@ -1,5 +1,5 @@
-#ifndef MANDELBROT_EFFECT_H
-#define MANDELBROT_EFFECT_H
+#ifndef EFFECT_MANDELBROT_H
+#define EFFECT_MANDELBROT_H
 
 #ifdef __linux__
 #include <GL/gl.h>

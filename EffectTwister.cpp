@@ -1,4 +1,4 @@
-#include "TwisterEffect.h"
+#include "EffectTwister.h"
 
 #include <cmath>
 

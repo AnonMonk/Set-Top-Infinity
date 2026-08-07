@@ -1,5 +1,5 @@
-#ifndef LOGO_EFFECT_H
-#define LOGO_EFFECT_H
+#ifndef EFFECT_LOGO_H
+#define EFFECT_LOGO_H
 
 #ifdef __linux__
 #include <GL/gl.h>

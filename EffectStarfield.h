@@ -1,5 +1,5 @@
-#ifndef TUNNEL_EFFECT_H
-#define TUNNEL_EFFECT_H
+#ifndef EFFECT_STARFIELD_H
+#define EFFECT_STARFIELD_H
 
 #ifdef __linux__
 #include <GL/gl.h>
@@ -12,6 +12,6 @@
     #include <GL/gl.h>
 #endif
 
-void drawTunnelEffect(GLuint texture, float animTime);
+void drawStarfieldEffect(float animTime, float duration);
 
 #endif
