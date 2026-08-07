@@ -117,32 +117,6 @@ namespace
 		*y = rotatedY * perspective * gatherScale;
 	}
 
-	void drawCenterGlow(float gather, float time, float aspect)
-	{
-		if (gather <= 0.55f)
-			return;
-
-		float strength = smoothStep((gather - 0.55f) / 0.45f);
-		for (int ring = 0; ring < 4; ring++)
-		{
-			float radius =
-				(0.025f + (float)ring * 0.025f)
-				* (1.0f + 0.12f * sinf(time * 4.0f + ring));
-			float alpha = strength * (0.16f - (float)ring * 0.025f);
-
-			glColor4f(0.35f, 0.75f, 1.0f, alpha);
-			glBegin(GL_LINE_LOOP);
-			for (int i = 0; i < 48; i++)
-			{
-				float angle = (float)i / 48.0f * PI * 2.0f;
-				glVertex2f(
-					cosf(angle) * radius * aspect,
-					sinf(angle) * radius
-				);
-			}
-			glEnd();
-		}
-	}
 }
 
 void drawStarfieldEffect(float animTime, float duration)
@@ -180,7 +154,7 @@ void drawStarfieldEffect(float animTime, float duration)
 	const float speed = 0.27f;
 
 	/* Leuchtspuren zeigen Flugrichtung und zunehmenden Wirbel. */
-	glLineWidth(1.4f);
+	glLineWidth(5.6f);
 	glBegin(GL_LINES);
 	for (int i = 0; i < starCount; i++)
 	{
@@ -225,7 +199,7 @@ void drawStarfieldEffect(float animTime, float duration)
 	glEnd();
 
 	/* Helle Koepfe auf den Spuren. */
-	glPointSize(1.0f);
+	glPointSize(4.0f);
 	glBegin(GL_POINTS);
 	for (int i = 0; i < starCount; i++)
 	{
@@ -253,8 +227,6 @@ void drawStarfieldEffect(float animTime, float duration)
 		glVertex2f(x, y);
 	}
 	glEnd();
-
-	drawCenterGlow(gather, animTime, aspect);
 
 	glPointSize(1.0f);
 	glLineWidth(1.0f);
