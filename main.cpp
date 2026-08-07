@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <limits.h>
 #include <stdint.h>
 #include <string>
@@ -16,8 +17,9 @@
 #include <mach-o/dyld.h>
 #endif
 #ifdef _WIN32
-    #include <windows.h>
-    #include <GL/gl.h>
+	#include <windows.h>
+	#include <GL/gl.h>
+	#define strcasecmp _stricmp
 #endif
 
 
@@ -53,8 +55,31 @@ enum Scene
 	SCENE_COUNT = 9
 };
 
+static const char* sceneNames[SCENE_COUNT] = {
+	"logo",
+	"wave",
+	"rotozoom",
+	"tunnel",
+	"twister",
+	"mandelbrot",
+	"starfield",
+	"credits",
+	"greets"
+};
+
 int sceneLength[SCENE_COUNT];
-int demoStartMilliseconds = 0;
+
+/* Virtuelle Demo-Uhr (pausier- und springbar) */
+long long demoClockMs = 0;
+unsigned long long lastWallMs = 0;
+bool paused = false;
+
+/* Solo-Mode: nur eine Szene, geloopt (CLI oder per Taste umgeschaltet) */
+bool soloMode = false;
+int soloScene = 0;
+
+/* Edge-Detection fuer Tasten */
+bool prevKey[256];
 
 GLuint rotoTexture = 0;
 GLuint tunnelTexture = 0;
@@ -120,13 +145,13 @@ if (!playaudio) {
 #endif
 
 #ifdef __linux__
-    *process = fork();
-    if (*process < 0) return false;
+	*process = fork();
+	if (*process < 0) return false;
 
-    if (*process == 0) {
-        execlp("pw-play", "pw-play", filename.c_str(), static_cast<char*>(nullptr));
-        _exit(127);
-    }
+	if (*process == 0) {
+		execlp("pw-play", "pw-play", filename.c_str(), static_cast<char*>(nullptr));
+		_exit(127);
+	}
 #endif
 
 	return true;
@@ -161,7 +186,7 @@ GLuint loadTextureRGBA(const string& filename, bool repeatMode) {
 		pic.width,
 		pic.height,
 		0,
-		0x80E1, //GL_ARGBA
+		0x80E1, //GL_BGRA
 		GL_UNSIGNED_BYTE,
 		pic.data
 	);
@@ -206,52 +231,172 @@ int totalDemoFrames() {
 }
 
 
-bool update() {
+int sceneStartFrame(int scene)
+{
+	int start = 0;
+	int i;
+	for (i = 0; i < scene; i++)
+		start += sceneLength[i];
+	return start;
+}
 
-	float now = (GetMilliseconds() - demoStartMilliseconds) * 0.001f;
-	if (now < 0.0f) now = 0.0f;
 
-	float mainMusicStart = (float)sceneLength[SCENE_LOGO] / (float)DEMO_FPS;
-	if (!mainMusicStarted && now >= mainMusicStart) {
-		mainMusicStarted = true;
+void seekToScene(int scene)
+{
+	if (scene < 0 || scene >= SCENE_COUNT)
+		return;
+	demoClockMs = (long long)sceneStartFrame(scene) * 1000 / DEMO_FPS;
+}
 
-		if (!playSound(executableDirectory + "/assets/neon.aiff", &mainMusicProcess)) printf("Warnung: neon.aiff konnte nicht gestartet werden.\n");
+
+void tickDemoClock()
+{
+	unsigned long long wall = GetMilliseconds();
+	if (!paused)
+		demoClockMs += (long long)(wall - lastWallMs);
+	lastWallMs = wall;
+	if (demoClockMs < 0)
+		demoClockMs = 0;
+}
+
+
+bool keyJustPressed(int key)
+{
+	return keyboard[key] && !prevKey[key];
+}
+
+
+void storeKeyState()
+{
+	int i;
+	for (i = 0; i < 256; i++)
+		prevKey[i] = keyboard[i];
+}
+
+
+void printUsage()
+{
+	int i;
+	printf("Usage: demo [scene]\n");
+	printf("  without args  = full demo\n");
+	printf("  with scene    = solo loop that effect\n");
+	printf("Scenes:\n");
+	for (i = 0; i < SCENE_COUNT; i++)
+		printf("  %d  %s\n", i + 1, sceneNames[i]);
+	printf("Also: logo_wave, roto, mandel, stars, greetz, intro, ...\n");
+	printf("Keys: 1-9 scene, R restart, Space pause, ESC quit\n");
+}
+
+
+int parseSceneName(const char* name)
+{
+	int n;
+
+	if (name == NULL || name[0] == '\0')
+		return -1;
+
+	/* Zahlen 1-9 oder 0-8 */
+	if (name[0] >= '1' && name[0] <= '9' && name[1] == '\0')
+		return name[0] - '1';
+	if (name[0] >= '0' && name[0] <= '8' && name[1] == '\0')
+		return name[0] - '0';
+
+	if (strcasecmp(name, "logo") == 0 || strcasecmp(name, "intro") == 0)
+		return SCENE_LOGO;
+	if (strcasecmp(name, "wave") == 0 ||
+		strcasecmp(name, "logo_wave") == 0 ||
+		strcasecmp(name, "logowave") == 0 ||
+		strcasecmp(name, "transition") == 0)
+		return SCENE_LOGO_WAVE;
+	if (strcasecmp(name, "roto") == 0 ||
+		strcasecmp(name, "rotozoom") == 0 ||
+		strcasecmp(name, "rotozoomer") == 0)
+		return SCENE_ROTOZOOM;
+	if (strcasecmp(name, "tunnel") == 0)
+		return SCENE_TUNNEL;
+	if (strcasecmp(name, "twister") == 0)
+		return SCENE_TWISTER;
+	if (strcasecmp(name, "mandelbrot") == 0 || strcasecmp(name, "mandel") == 0)
+		return SCENE_MANDELBROT;
+	if (strcasecmp(name, "starfield") == 0 ||
+		strcasecmp(name, "stars") == 0 ||
+		strcasecmp(name, "star") == 0)
+		return SCENE_STARFIELD;
+	if (strcasecmp(name, "credits") == 0 || strcasecmp(name, "credit") == 0)
+		return SCENE_CREDITS;
+	if (strcasecmp(name, "greets") == 0 ||
+		strcasecmp(name, "greet") == 0 ||
+		strcasecmp(name, "greetz") == 0)
+		return SCENE_GREETS;
+
+	/* exakter Listenname */
+	for (n = 0; n < SCENE_COUNT; n++) {
+		if (strcasecmp(name, sceneNames[n]) == 0)
+			return n;
 	}
 
-	int totalFrame = (int)(now * DEMO_FPS);
-	if (totalFrame >= totalDemoFrames()) return true;
-
-	int scene = 0;
-	int localFrame = 0;
-	getSceneState(totalFrame, &scene, &localFrame);
-	float animTime = (float)localFrame / (float)DEMO_FPS;
-
-	int rotoStartFrame = sceneLength[SCENE_LOGO];
-	int rotoFrame = totalFrame - rotoStartFrame;
-	if (rotoFrame < 0) rotoFrame = 0;
-	float rotoAnimTime = (float)rotoFrame / (float)DEMO_FPS;
-
-	int tunnelStartFrame =
-		sceneLength[SCENE_LOGO]
-		+ sceneLength[SCENE_LOGO_WAVE]
-		+ sceneLength[SCENE_ROTOZOOM];
-	int tunnelFrame = totalFrame - tunnelStartFrame;
-	if (tunnelFrame < 0) tunnelFrame = 0;
-	float tunnelAnimTime = (float)tunnelFrame / (float)DEMO_FPS;
-
-	int creditsStartFrame =
-		sceneLength[SCENE_LOGO]
-		+ sceneLength[SCENE_LOGO_WAVE]
-		+ sceneLength[SCENE_ROTOZOOM]
-		+ sceneLength[SCENE_TUNNEL]
-		+ sceneLength[SCENE_TWISTER]
-		+ sceneLength[SCENE_MANDELBROT]
-		+ sceneLength[SCENE_STARFIELD];
-	int creditsFrame = totalFrame - creditsStartFrame;
-	if (creditsFrame < 0) creditsFrame = 0;
-	float creditsAnimTime = (float)creditsFrame / (float)DEMO_FPS;
+	return -1;
+}
 
 
+void jumpToScene(int scene)
+{
+	if (scene < 0 || scene >= SCENE_COUNT)
+		return;
+
+	if (soloMode) {
+		soloScene = scene;
+		demoClockMs = 0;
+		printf("Solo -> %s\n", sceneNames[scene]);
+	} else {
+		seekToScene(scene);
+		printf("Seek -> %s\n", sceneNames[scene]);
+	}
+}
+
+
+void restartCurrentScene(int scene)
+{
+	if (soloMode) {
+		demoClockMs = 0;
+		printf("Restart solo %s\n", sceneNames[soloScene]);
+	} else {
+		seekToScene(scene);
+		printf("Restart %s\n", sceneNames[scene]);
+	}
+}
+
+
+void handleDevKeys(int currentScene)
+{
+	if (keyJustPressed(KEY_SPACE)) {
+		paused = !paused;
+		printf(paused ? "Pause\n" : "Resume\n");
+	}
+
+	if (keyJustPressed(KEY_R))
+		restartCurrentScene(currentScene);
+
+	if (keyJustPressed(KEY_1)) jumpToScene(SCENE_LOGO);
+	if (keyJustPressed(KEY_2)) jumpToScene(SCENE_LOGO_WAVE);
+	if (keyJustPressed(KEY_3)) jumpToScene(SCENE_ROTOZOOM);
+	if (keyJustPressed(KEY_4)) jumpToScene(SCENE_TUNNEL);
+	if (keyJustPressed(KEY_5)) jumpToScene(SCENE_TWISTER);
+	if (keyJustPressed(KEY_6)) jumpToScene(SCENE_MANDELBROT);
+	if (keyJustPressed(KEY_7)) jumpToScene(SCENE_STARFIELD);
+	if (keyJustPressed(KEY_8)) jumpToScene(SCENE_CREDITS);
+	if (keyJustPressed(KEY_9)) jumpToScene(SCENE_GREETS);
+}
+
+
+void drawScene(
+	int scene,
+	float animTime,
+	float rotoAnimTime,
+	float tunnelAnimTime,
+	float creditsAnimTime,
+	float sceneDuration)
+{
 	switch (scene)
 	{
 		case SCENE_LOGO:
@@ -268,8 +413,7 @@ bool update() {
 				fishTailTexture,
 				rotoTexture,
 				animTime,
-				(float)sceneLength[SCENE_LOGO_WAVE]
-					/ (float)DEMO_FPS,
+				sceneDuration,
 				rotoAnimTime
 			);
 			break;
@@ -291,17 +435,12 @@ bool update() {
 				mandelbrotTextures,
 				MANDELBROT_TEXTURE_COUNT,
 				animTime,
-				(float)sceneLength[SCENE_MANDELBROT]
-					/ (float)DEMO_FPS
+				sceneDuration
 			);
 			break;
 
 		case SCENE_STARFIELD:
-			drawStarfieldEffect(
-				animTime,
-				(float)sceneLength[SCENE_STARFIELD]
-					/ (float)DEMO_FPS
-			);
+			drawStarfieldEffect(animTime, sceneDuration);
 			break;
 
 		case SCENE_CREDITS:
@@ -313,6 +452,94 @@ bool update() {
 			drawGreetsEffect(animTime);
 			break;
 	}
+}
+
+
+bool update() {
+
+	tickDemoClock();
+
+	float now = (float)demoClockMs * 0.001f;
+	if (now < 0.0f) now = 0.0f;
+
+	float mainMusicStart = (float)sceneLength[SCENE_LOGO] / (float)DEMO_FPS;
+	if (!mainMusicStarted && now >= mainMusicStart) {
+		mainMusicStarted = true;
+
+		if (!playSound(executableDirectory + "/assets/neon.aiff", &mainMusicProcess))
+			printf("Warnung: neon.aiff konnte nicht gestartet werden.\n");
+	}
+
+	int totalFrame = (int)(now * DEMO_FPS);
+
+	int scene = 0;
+	int localFrame = 0;
+	float animTime = 0.0f;
+	float rotoAnimTime = 0.0f;
+	float tunnelAnimTime = 0.0f;
+	float creditsAnimTime = 0.0f;
+	float sceneDuration = 0.0f;
+
+	if (soloMode) {
+		scene = soloScene;
+		int len = sceneLength[scene];
+		if (len < 1)
+			len = DEMO_FPS * 10;
+
+		localFrame = totalFrame % len;
+		animTime = (float)localFrame / (float)DEMO_FPS;
+		sceneDuration = (float)len / (float)DEMO_FPS;
+
+		/* Solo: alle Effekt-Zeiten lokal ab 0 */
+		rotoAnimTime = animTime;
+		tunnelAnimTime = animTime;
+		creditsAnimTime = animTime;
+	} else {
+		if (totalFrame >= totalDemoFrames())
+			return true;
+
+		getSceneState(totalFrame, &scene, &localFrame);
+		animTime = (float)localFrame / (float)DEMO_FPS;
+		sceneDuration = (float)sceneLength[scene] / (float)DEMO_FPS;
+
+		int rotoStartFrame = sceneLength[SCENE_LOGO];
+		int rotoFrame = totalFrame - rotoStartFrame;
+		if (rotoFrame < 0) rotoFrame = 0;
+		rotoAnimTime = (float)rotoFrame / (float)DEMO_FPS;
+
+		int tunnelStartFrame =
+			sceneLength[SCENE_LOGO]
+			+ sceneLength[SCENE_LOGO_WAVE]
+			+ sceneLength[SCENE_ROTOZOOM];
+		int tunnelFrame = totalFrame - tunnelStartFrame;
+		if (tunnelFrame < 0) tunnelFrame = 0;
+		tunnelAnimTime = (float)tunnelFrame / (float)DEMO_FPS;
+
+		int creditsStartFrame =
+			sceneLength[SCENE_LOGO]
+			+ sceneLength[SCENE_LOGO_WAVE]
+			+ sceneLength[SCENE_ROTOZOOM]
+			+ sceneLength[SCENE_TUNNEL]
+			+ sceneLength[SCENE_TWISTER]
+			+ sceneLength[SCENE_MANDELBROT]
+			+ sceneLength[SCENE_STARFIELD];
+		int creditsFrame = totalFrame - creditsStartFrame;
+		if (creditsFrame < 0) creditsFrame = 0;
+		creditsAnimTime = (float)creditsFrame / (float)DEMO_FPS;
+	}
+
+	handleDevKeys(scene);
+
+	drawScene(
+		scene,
+		animTime,
+		rotoAnimTime,
+		tunnelAnimTime,
+		creditsAnimTime,
+		sceneDuration
+	);
+
+	storeKeyState();
 
 	return false;
 }
@@ -367,6 +594,8 @@ void loadDemoTextures(const string& directory)
 
 int main(int argc, char** argv) {
 
+	int i;
+
 	sceneLength[SCENE_LOGO] = 60 * 3;
 	sceneLength[SCENE_LOGO_WAVE] = 60 * 2;
 	sceneLength[SCENE_ROTOZOOM] = 60 * 8;
@@ -377,13 +606,40 @@ int main(int argc, char** argv) {
 	sceneLength[SCENE_CREDITS] = 60 * 9;
 	sceneLength[SCENE_GREETS] = 60 * 9;
 
+	for (i = 0; i < 256; i++)
+		prevKey[i] = false;
+
+	/* CLI: demo tunnel  /  demo 4  /  demo --help */
+	if (argc >= 2) {
+		if (strcasecmp(argv[1], "-h") == 0 ||
+			strcasecmp(argv[1], "--help") == 0 ||
+			strcasecmp(argv[1], "help") == 0) {
+			printUsage();
+			return 0;
+		}
+
+		int scene = parseSceneName(argv[1]);
+		if (scene < 0) {
+			printf("Unknown scene: %s\n\n", argv[1]);
+			printUsage();
+			return 1;
+		}
+
+		soloMode = true;
+		soloScene = scene;
+		printf("Solo mode: %s (loop)\n", sceneNames[scene]);
+	}
+
 	int demoSeconds = totalDemoFrames() / DEMO_FPS;
-	printf(
-		"Gesamtlaenge der Demo: %d Sekunden (%d:%02d)\n",
-		demoSeconds,
-		demoSeconds / 60,
-		demoSeconds % 60
-	);
+	if (!soloMode) {
+		printf(
+			"Gesamtlaenge der Demo: %d Sekunden (%d:%02d)\n",
+			demoSeconds,
+			demoSeconds / 60,
+			demoSeconds % 60
+		);
+	}
+	printf("Keys: 1-9 scene, R restart, Space pause, ESC quit\n");
 
 	openGLcontext(1280, 720, false);
 
@@ -396,14 +652,13 @@ int main(int argc, char** argv) {
 	loadFontEndTitles();
 
 
-	if (!playSound(executableDirectory + "/assets/Introsound.aiff", &introAudioProcess)) printf("Warnung: Introsound.aiff konnte nicht gestartet werden.\n");
+	if (!playSound(executableDirectory + "/assets/Introsound.aiff", &introAudioProcess))
+		printf("Warnung: Introsound.aiff konnte nicht gestartet werden.\n");
 	
 
-	demoStartMilliseconds = GetMilliseconds();
+	lastWallMs = GetMilliseconds();
+	demoClockMs = 0;
 
-	// Wichtig: && nicht ||
-	// Alt: while (!ESC || quit) → sobald update() true liefert, läuft die
-	// Schleife endlos weiter (quit bleibt true, Bedingung immer erfüllt).
 	bool quit = false;
 	while (!keyboard[KEY_ESCAPE] && !quit) {
 		quit = update();
@@ -412,9 +667,9 @@ int main(int argc, char** argv) {
 
 	
 	FinishGFXsystem();
-    ReturnFPSstring();
+	ReturnFPSstring();
 
-    stopAllAudio();
+	stopAllAudio();
 
 	return 0;
 }
