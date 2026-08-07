@@ -20,7 +20,7 @@ LIB_DIR := ./
 CXX = g++
 OUT = $(NAME)
 CXXFLAGS = -O2 $(COMMON_WARNINGS) -std=c++17
-LDFLAGS = -lopengl32 -lvipgfx -lglTTF
+LDFLAGS = -lopengl32 -lvipgfx -lglTTF -lwinmm
 
 
 all:

@@ -18,6 +18,7 @@
 #endif
 #ifdef _WIN32
 	#include <windows.h>
+	#include <mmsystem.h>
 	#include <GL/gl.h>
 	#define strcasecmp _stricmp
 #endif
@@ -35,7 +36,7 @@
 #include "EffectTunnel.h"
 #include "EffectTwister.h"
 
-#define playaudio false
+#define playaudio true
 
 const int DEMO_FPS = 60;
 
@@ -113,7 +114,11 @@ string getExecutableDir(char** argv) {
 
 
 void stopSound(pid_t* process) {
-#ifndef _WIN32
+#ifdef _WIN32
+	/* PlaySound kann nur einen Sound — stoppt alles */
+	(void)process;
+	PlaySoundA(NULL, NULL, 0);
+#else
 	if (*process > 0) {
 		kill(*process, SIGTERM);
 		*process = -1;
@@ -122,17 +127,35 @@ void stopSound(pid_t* process) {
 }
 
 void stopAllAudio() {
+#ifdef _WIN32
+	PlaySoundA(NULL, NULL, 0);
+	introAudioProcess = -1;
+	mainMusicProcess = -1;
+#else
 	stopSound(&introAudioProcess);
 	stopSound(&mainMusicProcess);
+#endif
 }
 
 
 bool playSound(const string& filename, pid_t* process) {
 
 if (!playaudio) {
-	process = NULL;
+	if (process != NULL)
+		*process = -1;
 	return true;
 }
+
+#ifdef _WIN32
+	/* WAV asynchron abspielen — kein Preload, niedrige Latenz */
+	if (!PlaySoundA(filename.c_str(), NULL, SND_ASYNC | SND_FILENAME | SND_NODEFAULT)) {
+		printf("PlaySound failed: %s\n", filename.c_str());
+		return false;
+	}
+	if (process != NULL)
+		*process = 1;
+	return true;
+#endif
 
 #ifdef __APPLE__
 	*process = fork();
@@ -466,8 +489,13 @@ bool update() {
 	if (!mainMusicStarted && now >= mainMusicStart) {
 		mainMusicStarted = true;
 
+#ifdef _WIN32
+		if (!playSound(executableDirectory + "/assets/neon.wav", &mainMusicProcess))
+			printf("Warnung: neon.wav konnte nicht gestartet werden.\n");
+#else
 		if (!playSound(executableDirectory + "/assets/neon.aiff", &mainMusicProcess))
 			printf("Warnung: neon.aiff konnte nicht gestartet werden.\n");
+#endif
 	}
 
 	int totalFrame = (int)(now * DEMO_FPS);
@@ -645,16 +673,20 @@ int main(int argc, char** argv) {
 
 
 	executableDirectory = getExecutableDir(argv);
-	
+
 	loadDemoTextures(executableDirectory);
 
 	loadFontLogo();
 	loadFontEndTitles();
 
-
+	/* Windows: WAV + PlaySound | Apple/Linux: AIFF + afplay/pw-play */
+#ifdef _WIN32
+	if (!playSound(executableDirectory + "/assets/Introsound.wav", &introAudioProcess))
+		printf("Warnung: Introsound.wav konnte nicht gestartet werden.\n");
+#else
 	if (!playSound(executableDirectory + "/assets/Introsound.aiff", &introAudioProcess))
 		printf("Warnung: Introsound.aiff konnte nicht gestartet werden.\n");
-	
+#endif
 
 	lastWallMs = GetMilliseconds();
 	demoClockMs = 0;
