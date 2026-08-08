@@ -12,3 +12,13 @@ EndTitlesPreview
 # Build-Zwischenprodukte
 *.o
 *.dSYM/
+
+# CPU-Logs (tools/log_demo_stats.py)
+tools/log/
+
+# Mandelbrot-Preview (Kompromiss-Testbilder)
+mandelbrottest/
+
+# Arbeits-Tagebuch
+tools/TAGEBUCH_*.md
+
