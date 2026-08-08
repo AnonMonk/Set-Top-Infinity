@@ -1,1 +1,14 @@
+# Windows
 *.exe
+
+# macOS / Linux / Apple TV 1 (Mac OS X 10.5.8) — make mac / make linux
+demo
+
+# Preview-Tools (Makefile clean)
+CreditsPreview
+GreetsPreview
+EndTitlesPreview
+
+# Build-Zwischenprodukte
+*.o
+*.dSYM/

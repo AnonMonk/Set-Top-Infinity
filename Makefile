@@ -12,26 +12,50 @@ SRC = main.cpp \
       EffectTwister.cpp
 
 NAME = demo
-
-COMMON_WARNINGS = -w
-
 LIB_DIR := ./
-
 CXX = g++
-OUT = $(NAME)
-CXXFLAGS = -O2 $(COMMON_WARNINGS) -std=c++17
-LDFLAGS = -lopengl32 -lvipgfx -lglTTF -lwinmm
+CXXFLAGS_BASE = -O2 -std=c++17
 
+# Default-Target: Hinweis, welches OS-Target man bauen soll
+.PHONY: all mac linux win clean info
 
 all:
-	$(CXX) $(SRC) -o $(OUT) $(CXXFLAGS) -L$(LIB_DIR) $(LDFLAGS)
+	@echo "Bitte Plattform angeben:"
+	@echo "  make mac"
+	@echo "  make linux"
+	@echo "  make win"
 
+# =========================
+# macOS
+# =========================
+mac:
+	$(CXX) $(SRC) -o $(NAME) $(CXXFLAGS_BASE) -w -L$(LIB_DIR) \
+		-framework OpenGL -lvipgfx -lglTTF
+
+# =========================
+# Linux
+# =========================
+linux:
+	$(CXX) $(SRC) -o $(NAME) $(CXXFLAGS_BASE) -Wall -L$(LIB_DIR) \
+		-lGL -lvipgfx -lglTTF
+
+# =========================
+# Windows (MinGW)
+# =========================
+win:
+	$(CXX) $(SRC) -o $(NAME).exe $(CXXFLAGS_BASE) -w -L$(LIB_DIR) \
+		-lopengl32 -lvipgfx -lglTTF -lwinmm
+
+# =========================
+# Hilfs-Targets
+# =========================
 clean:
 	rm -f $(NAME) $(NAME).exe CreditsPreview GreetsPreview EndTitlesPreview
 
 info:
-	@echo TARGET = $(TARGET)
-	@echo CXX = $(CXX)
-	@echo OUT = $(OUT)
-	@echo CXXFLAGS = $(CXXFLAGS)
-	@echo LDFLAGS = $(LDFLAGS)
+	@echo "SRC     = $(SRC)"
+	@echo "NAME    = $(NAME)"
+	@echo "CXX     = $(CXX)"
+	@echo "LIB_DIR = $(LIB_DIR)"
+	@echo ""
+	@echo "Targets: make mac | make linux | make win | make clean | make info"
