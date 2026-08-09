@@ -150,11 +150,12 @@ void drawStarfieldEffect(float animTime, float duration)
 	float gather = smoothStep((animTime - gatherStart) / 4.0f);
 	float fade = 1.0f;
 
-	const int starCount = 360;
+	/* Weniger Sterne = spuerbar billiger (2x Loops: Lines + Points) */
+	const int starCount = 220;
 	const float speed = 0.27f;
 
 	/* Leuchtspuren zeigen Flugrichtung und zunehmenden Wirbel. */
-	glLineWidth(5.6f);
+	glLineWidth(4.5f);
 	glBegin(GL_LINES);
 	for (int i = 0; i < starCount; i++)
 	{
@@ -199,7 +200,7 @@ void drawStarfieldEffect(float animTime, float duration)
 	glEnd();
 
 	/* Helle Koepfe auf den Spuren. */
-	glPointSize(4.0f);
+	glPointSize(3.5f);
 	glBegin(GL_POINTS);
 	for (int i = 0; i < starCount; i++)
 	{

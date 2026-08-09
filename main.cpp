@@ -30,7 +30,7 @@
 
 #include "EffectEndTitles.h"
 #include "EffectLogo.h"
-#include "EffectMandelbrot.h"
+#include "EffectJulia.h"
 #include "EffectRotozoom.h"
 #include "EffectStarfield.h"
 #include "EffectTunnel.h"
@@ -49,8 +49,8 @@ enum Scene
 	SCENE_ROTOZOOM = 2,
 	SCENE_TUNNEL = 3,
 	SCENE_TWISTER = 4,
-	SCENE_MANDELBROT = 5,
-	SCENE_STARFIELD = 6,
+	SCENE_STARFIELD = 5,
+	SCENE_JULIA = 6,
 	SCENE_CREDITS = 7,
 	SCENE_GREETS = 8,
 	SCENE_COUNT = 9
@@ -62,8 +62,8 @@ static const char* sceneNames[SCENE_COUNT] = {
 	"rotozoom",
 	"tunnel",
 	"twister",
-	"mandelbrot",
 	"starfield",
+	"julia",
 	"credits",
 	"greets"
 };
@@ -86,7 +86,7 @@ GLuint rotoTexture = 0;
 GLuint tunnelTexture = 0;
 GLuint fishHeadTexture = 0;
 GLuint fishTailTexture = 0;
-GLuint mandelbrotTextures[MANDELBROT_TEXTURE_COUNT];
+GLuint juliaTextures[JULIA_TEXTURE_COUNT];
 
 string executableDirectory;
 bool mainMusicStarted = false;
@@ -306,7 +306,7 @@ void printUsage()
 	printf("Scenes:\n");
 	for (i = 0; i < SCENE_COUNT; i++)
 		printf("  %d  %s\n", i + 1, sceneNames[i]);
-	printf("Also: logo_wave, roto, mandel, stars, greetz, intro, ...\n");
+	printf("Also: logo_wave, roto, julia, stars, greetz, intro, ...\n");
 	printf("Keys: 1-9 scene, R restart, Space pause, ESC quit\n");
 }
 
@@ -339,8 +339,8 @@ int parseSceneName(const char* name)
 		return SCENE_TUNNEL;
 	if (strcasecmp(name, "twister") == 0)
 		return SCENE_TWISTER;
-	if (strcasecmp(name, "mandelbrot") == 0 || strcasecmp(name, "mandel") == 0)
-		return SCENE_MANDELBROT;
+	if (strcasecmp(name, "julia") == 0 || strcasecmp(name, "jul") == 0)
+		return SCENE_JULIA;
 	if (strcasecmp(name, "starfield") == 0 ||
 		strcasecmp(name, "stars") == 0 ||
 		strcasecmp(name, "star") == 0)
@@ -405,8 +405,8 @@ void handleDevKeys(int currentScene)
 	if (keyJustPressed(KEY_3)) jumpToScene(SCENE_ROTOZOOM);
 	if (keyJustPressed(KEY_4)) jumpToScene(SCENE_TUNNEL);
 	if (keyJustPressed(KEY_5)) jumpToScene(SCENE_TWISTER);
-	if (keyJustPressed(KEY_6)) jumpToScene(SCENE_MANDELBROT);
-	if (keyJustPressed(KEY_7)) jumpToScene(SCENE_STARFIELD);
+	if (keyJustPressed(KEY_6)) jumpToScene(SCENE_STARFIELD);
+	if (keyJustPressed(KEY_7)) jumpToScene(SCENE_JULIA);
 	if (keyJustPressed(KEY_8)) jumpToScene(SCENE_CREDITS);
 	if (keyJustPressed(KEY_9)) jumpToScene(SCENE_GREETS);
 }
@@ -453,17 +453,17 @@ void drawScene(
 			drawTwisterEffect(animTime);
 			break;
 
-		case SCENE_MANDELBROT:
-			drawMandelbrotEffect(
-				mandelbrotTextures,
-				MANDELBROT_TEXTURE_COUNT,
+		case SCENE_STARFIELD:
+			drawStarfieldEffect(animTime, sceneDuration);
+			break;
+
+		case SCENE_JULIA:
+			drawJuliaEffect(
+				juliaTextures,
+				JULIA_TEXTURE_COUNT,
 				animTime,
 				sceneDuration
 			);
-			break;
-
-		case SCENE_STARFIELD:
-			drawStarfieldEffect(animTime, sceneDuration);
 			break;
 
 		case SCENE_CREDITS:
@@ -549,14 +549,37 @@ bool update() {
 			+ sceneLength[SCENE_ROTOZOOM]
 			+ sceneLength[SCENE_TUNNEL]
 			+ sceneLength[SCENE_TWISTER]
-			+ sceneLength[SCENE_MANDELBROT]
-			+ sceneLength[SCENE_STARFIELD];
+			+ sceneLength[SCENE_STARFIELD]
+			+ sceneLength[SCENE_JULIA];
 		int creditsFrame = totalFrame - creditsStartFrame;
 		if (creditsFrame < 0) creditsFrame = 0;
 		creditsAnimTime = (float)creditsFrame / (float)DEMO_FPS;
 	}
 
 	handleDevKeys(scene);
+
+	/* Julia-Precalc nur solange noetig (fertig = kein Tick mehr) */
+	if (!juliaPrecalcIsReady()) {
+		double budgetMs = 0.0;
+		if (soloMode) {
+			if (scene != SCENE_JULIA)
+				budgetMs = JULIA_BUDGET_SOLO_MS;
+		} else {
+			switch (scene) {
+				case SCENE_LOGO:      budgetMs = JULIA_BUDGET_LOGO_MS; break;
+				case SCENE_LOGO_WAVE: budgetMs = JULIA_BUDGET_WAVE_MS; break;
+				case SCENE_ROTOZOOM:  budgetMs = JULIA_BUDGET_ROTO_MS; break;
+				case SCENE_TUNNEL:    budgetMs = JULIA_BUDGET_TUNNEL_MS; break;
+				case SCENE_TWISTER:   budgetMs = JULIA_BUDGET_TWISTER_MS; break;
+				case SCENE_STARFIELD: budgetMs = JULIA_BUDGET_STARFIELD_MS; break;
+				default:              budgetMs = 0.0; break;
+			}
+		}
+		if (budgetMs > 0.0)
+			juliaPrecalcTick(budgetMs);
+		if (scene == SCENE_JULIA)
+			juliaPrecalcFinishBlocking();
+	}
 
 	drawScene(
 		scene,
@@ -602,20 +625,9 @@ void loadDemoTextures(const string& directory)
 		exit(0);
 	}
 
-	for (int i = 0; i < MANDELBROT_TEXTURE_COUNT; i++) {
-
-		char fileName[64];
-		sprintf(fileName, "/assets/mandelbrot/Mandelbrot%02d.png", i);
-
-		mandelbrotTextures[i] = loadTextureRGBA(directory + fileName, false);
-
-		if (mandelbrotTextures[i] == 0) {
-			printf("can't load Mandelbrot%02d.png\n", i);
-			exit(0);
-		}
-			
-	}
-
+	/* Julia: keine PNGs — Stufen-Precalc in den Vorszenen */
+	(void)directory;
+	juliaPrecalcInit(juliaTextures);
 }
 
 
@@ -629,8 +641,8 @@ int main(int argc, char** argv) {
 	sceneLength[SCENE_ROTOZOOM] = 60 * 8;
 	sceneLength[SCENE_TUNNEL] = 60 * 10;
 	sceneLength[SCENE_TWISTER] = 60 * 15;
-	sceneLength[SCENE_MANDELBROT] = 60 * 14;
 	sceneLength[SCENE_STARFIELD] = 60 * 20;
+	sceneLength[SCENE_JULIA] = 60 * 14;
 	sceneLength[SCENE_CREDITS] = 60 * 9;
 	sceneLength[SCENE_GREETS] = 60 * 9;
 
@@ -669,7 +681,7 @@ int main(int argc, char** argv) {
 	}
 	printf("Keys: 1-9 scene, R restart, Space pause, ESC quit\n");
 
-	openGLcontext(1280, 720, false);
+	openGLcontext(1280, 720, true);
 
 
 	executableDirectory = getExecutableDir(argv);
@@ -697,7 +709,7 @@ int main(int argc, char** argv) {
 		UpdateGFXsystem();
 	}
 
-	
+	juliaPrecalcShutdown();
 	FinishGFXsystem();
 	ReturnFPSstring();
 

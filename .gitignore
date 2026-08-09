@@ -12,13 +12,20 @@ EndTitlesPreview
 # Build-Zwischenprodukte
 *.o
 *.dSYM/
+__pycache__/
+*.pyc
+
 
 # CPU-Logs (tools/log_demo_stats.py)
 tools/log/
 
-# Mandelbrot-Preview (Kompromiss-Testbilder)
-mandelbrottest/
+# Julia-Preview (Kompromiss-Testbilder)
+juliatest/
 
 # Arbeits-Tagebuch
 tools/TAGEBUCH_*.md
+
+# Precalc-Budget-Plan
+tools/julia_precalc_budget.md
+tools/mandelbrot_precalc_budget.md
 

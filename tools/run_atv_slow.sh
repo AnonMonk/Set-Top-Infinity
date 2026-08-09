@@ -5,7 +5,7 @@
 # Usage:
 #   ./tools/run_atv_slow.sh              # ~10 % CPU + Log
 #   ./tools/run_atv_slow.sh 5            # ~5 %
-#   ./tools/run_atv_slow.sh 15 mandelbrot
+#   ./tools/run_atv_slow.sh 15 julia
 #   NO_CPU_LOG=1 ./tools/run_atv_slow.sh # ohne Log
 #
 # Optional (praeziseres Limit):  brew install cpulimit

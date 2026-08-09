@@ -63,8 +63,9 @@ void drawTunnelEffect(GLuint texture, float animTime)
 	glEnable(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, texture);
 
-	const int rings = 72;
-	const int slices = 64;
+	/* Leichter fuer ATV/schwache CPU: weniger Rings/Slices, Look bleibt nah dran */
+	const int rings = 48;
+	const int slices = 40;
 	const float nearDepth = 0.55f;
 	const float depthStep = 0.18f;
 

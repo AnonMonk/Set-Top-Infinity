@@ -5,7 +5,7 @@
 SRC = main.cpp \
       EffectEndTitles.cpp \
       EffectLogo.cpp \
-      EffectMandelbrot.cpp \
+      EffectJulia.cpp \
       EffectRotozoom.cpp \
       EffectStarfield.cpp \
       EffectTunnel.cpp \

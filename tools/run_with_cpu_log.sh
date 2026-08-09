@@ -3,7 +3,7 @@
 #
 # Usage:
 #   ./tools/run_with_cpu_log.sh
-#   ./tools/run_with_cpu_log.sh mandelbrot
+#   ./tools/run_with_cpu_log.sh julia
 
 set -euo pipefail
 

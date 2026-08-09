@@ -69,7 +69,7 @@ namespace
 		"",
 		"TO GNUMPF",
 		"",
-		"TO MANDELBRÖTCHEN",
+		"TO JULIA",
 		"",
 		"TO EVERYONE STILL CODING DEMOS",
 		"",

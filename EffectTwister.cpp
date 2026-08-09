@@ -95,18 +95,20 @@ void drawTwisterEffect(float animTime)
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 
-	/* Ruhige Sinuslinien geben dem schwarzen Hintergrund etwas Tiefe. */
+	/* Ruhige Sinuslinien (weniger = billiger auf ATV) */
 	glLineWidth(1.0f);
-	for (int line = 0; line < 15; line++)
+	const int bgLines = 8;
+	const int bgSamples = 28;
+	for (int line = 0; line < bgLines; line++)
 	{
-		float baseY = -1.0f + (float)line * (2.0f / 14.0f);
+		float baseY = -1.0f + (float)line * (2.0f / (float)(bgLines - 1));
 		float alpha = 0.035f + 0.025f * sinf(animTime + (float)line);
 
 		glColor4f(0.10f, 0.45f, 0.80f, alpha);
 		glBegin(GL_LINE_STRIP);
-		for (int i = 0; i <= 48; i++)
+		for (int i = 0; i <= bgSamples; i++)
 		{
-			float x = -aspect + (2.0f * aspect * (float)i / 48.0f);
+			float x = -aspect + (2.0f * aspect * (float)i / (float)bgSamples);
 			float y = baseY
 				+ 0.018f * sinf(x * 5.0f + animTime * 1.4f + line * 0.7f);
 			glVertex3f(x, y, 1.2f);
@@ -118,7 +120,8 @@ void drawTwisterEffect(float animTime)
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LEQUAL);
 
-	const int segments = 140;
+	/* Weniger Segmente: weniger Quads + Kanten-Vertices */
+	const int segments = 80;
 	/*
 	 * Laenger als die Bildschirmdiagonale: So reicht der Twister auch
 	 * waehrend der Drehung bei 4:3 und 16:9 immer ueber die Raender.
