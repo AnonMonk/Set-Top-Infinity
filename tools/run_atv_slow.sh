@@ -34,11 +34,33 @@ if ! [[ "$LIMIT_PERCENT" =~ ^[0-9]+$ ]] || (( LIMIT_PERCENT < 1 || LIMIT_PERCENT
 	exit 1
 fi
 
+LOGGER_BIN="${LOGGER_BIN:-$ROOT/tools/log_demo_stats}"
+DO_LOG="${NO_CPU_LOG:-0}"
+if [[ "$DO_LOG" != "1" ]]; then
+	if [[ ! -x "$LOGGER_BIN" ]]; then
+		echo "Logger nicht gefunden — baue: make tools"
+		make -C "$ROOT" tools
+	fi
+	if [[ ! -x "$LOGGER_BIN" ]]; then
+		echo "Logger-Binary fehlt: $LOGGER_BIN"
+		exit 1
+	fi
+fi
+
 LOG_DIR="${CPU_LOG_DIR:-$ROOT/tools/log}"
 mkdir -p "$LOG_DIR"
 LOG_STAMP="$(date +%Y%m%d_%H%M%S)"
 LOG_FILE="${CPU_LOG_FILE:-$LOG_DIR/demo_cpu_${LOG_STAMP}.csv}"
-DO_LOG="${NO_CPU_LOG:-0}"
+
+# Fractional sleep without Python (macOS / Linux sleep accepts floats)
+sleep_ms() {
+	local ms="$1"
+	if (( ms <= 0 )); then
+		return 0
+	fi
+	# printf %.3f → seconds
+	sleep "$(awk -v ms="$ms" 'BEGIN { printf "%.3f", ms / 1000 }')"
+}
 
 echo "Starte $DEMO_BIN $*  mit ~${LIMIT_PERCENT}% CPU-Limit"
 echo "(extern gebremst — nicht in der Demo eingebaut)"
@@ -77,7 +99,7 @@ trap cleanup EXIT INT TERM
 
 # Logger starten (extern, alle 0.5 s)
 if [[ "$DO_LOG" != "1" ]]; then
-	python3 "$ROOT/tools/log_demo_stats.py" "$DEMO_PID" 0.5 "$LOG_FILE" &
+	"$LOGGER_BIN" "$DEMO_PID" 0.5 "$LOG_FILE" &
 	LOGGER_PID=$!
 fi
 
@@ -87,7 +109,6 @@ if command -v cpulimit >/dev/null 2>&1; then
 	cpulimit -l "$LIMIT_PERCENT" -p "$DEMO_PID" &
 	LIMITER_PID=$!
 	wait "$DEMO_PID" || true
-	EXIT_CODE=0
 	if [[ -n "${LOGGER_PID}" ]]; then
 		wait "$LOGGER_PID" 2>/dev/null || true
 	fi
@@ -113,15 +134,9 @@ taskpolicy -b -p "$DEMO_PID" 2>/dev/null || true
 	while kill -0 "$DEMO_PID" 2>/dev/null; do
 		if (( SLEEP_MS > 0 )); then
 			kill -CONT "$DEMO_PID" 2>/dev/null || exit 0
-			python3 - "$RUN_MS" <<'PY'
-import sys, time
-time.sleep(int(sys.argv[1]) / 1000.0)
-PY
+			sleep_ms "$RUN_MS"
 			kill -STOP "$DEMO_PID" 2>/dev/null || exit 0
-			python3 - "$SLEEP_MS" <<'PY'
-import sys, time
-time.sleep(int(sys.argv[1]) / 1000.0)
-PY
+			sleep_ms "$SLEEP_MS"
 		else
 			sleep 0.05
 		fi

@@ -16,6 +16,16 @@ if [[ ! -x "$DEMO_BIN" ]]; then
 	exit 1
 fi
 
+LOGGER_BIN="${LOGGER_BIN:-$ROOT/tools/log_demo_stats}"
+if [[ ! -x "$LOGGER_BIN" ]]; then
+	echo "Logger nicht gefunden — baue: make tools"
+	make -C "$ROOT" tools
+fi
+if [[ ! -x "$LOGGER_BIN" ]]; then
+	echo "Logger-Binary fehlt: $LOGGER_BIN"
+	exit 1
+fi
+
 LOG_DIR="${CPU_LOG_DIR:-$ROOT/tools/log}"
 mkdir -p "$LOG_DIR"
 LOG_STAMP="$(date +%Y%m%d_%H%M%S)"
@@ -43,7 +53,7 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-python3 "$ROOT/tools/log_demo_stats.py" "$DEMO_PID" 0.5 "$LOG_FILE" &
+"$LOGGER_BIN" "$DEMO_PID" 0.5 "$LOG_FILE" &
 LOGGER_PID=$!
 
 wait "$DEMO_PID" || true

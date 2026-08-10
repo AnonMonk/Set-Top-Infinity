@@ -12,11 +12,12 @@ EndTitlesPreview
 # Build-Zwischenprodukte
 *.o
 *.dSYM/
-__pycache__/
-*.pyc
 
+# External CPU logger binary
+tools/log_demo_stats
+tools/log_demo_stats.exe
 
-# CPU-Logs (tools/log_demo_stats.py)
+# CPU-Logs (tools/log_demo_stats)
 tools/log/
 
 # Julia-Preview (Kompromiss-Testbilder)

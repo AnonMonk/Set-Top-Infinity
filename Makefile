@@ -17,13 +17,14 @@ CXX = g++
 CXXFLAGS_BASE = -O2 -std=c++17
 
 # Default-Target: Hinweis, welches OS-Target man bauen soll
-.PHONY: all mac linux win clean info
+.PHONY: all mac linux win clean info tools
 
 all:
 	@echo "Bitte Plattform angeben:"
 	@echo "  make mac"
 	@echo "  make linux"
 	@echo "  make win"
+	@echo "  make tools   # external CPU logger (tools/log_demo_stats)"
 
 # =========================
 # macOS
@@ -47,10 +48,17 @@ win:
 		-lopengl32 -lvipgfx -lglTTF -lwinmm
 
 # =========================
+# Tools (external, not linked into demo)
+# =========================
+tools:
+	$(MAKE) -C tools all
+
+# =========================
 # Hilfs-Targets
 # =========================
 clean:
-	rm -f $(NAME) $(NAME).exe CreditsPreview GreetsPreview EndTitlesPreview
+	rm -f $(NAME) $(NAME).exe CreditsPreview GreetsPreview EndTitlesPreview \
+		tools/log_demo_stats tools/log_demo_stats.exe
 
 info:
 	@echo "SRC     = $(SRC)"
@@ -58,4 +66,4 @@ info:
 	@echo "CXX     = $(CXX)"
 	@echo "LIB_DIR = $(LIB_DIR)"
 	@echo ""
-	@echo "Targets: make mac | make linux | make win | make clean | make info"
+	@echo "Targets: make mac | make linux | make win | make tools | make clean | make info"

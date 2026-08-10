@@ -124,9 +124,13 @@ Audio can be disabled via `#define playaudio` in `main.cpp`.
 
 ## Tools (macOS-oriented)
 
-`tools/` contains helpers for **CPU profiling** and **weak-hardware simulation** (Apple TV approximation) without changing demo code:
+`tools/` contains helpers for **CPU profiling** and **weak-hardware simulation** (Apple TV approximation) without changing demo code. The logger is a small **C++** binary (not linked into the demo).
 
 ```bash
+# Build external logger once
+make tools
+# alternatively: cd tools && make
+
 # ~10% CPU + CSV log under tools/log/
 ./tools/run_atv_slow.sh
 ./tools/run_atv_slow.sh 15 julia   # 15%, solo Julia
@@ -134,9 +138,13 @@ Audio can be disabled via `#define playaudio` in `main.cpp`.
 # Full CPU, log only
 ./tools/run_with_cpu_log.sh
 
-# Logger manually
-python3 tools/log_demo_stats.py <pid>
+# Logger manually (PID or wait for process named "demo")
+./tools/log_demo_stats <pid>
+./tools/log_demo_stats --find-demo
+./tools/log_demo_stats <pid> 0.5 tools/log/my.csv
 ```
+
+The shell wrappers build `tools/log_demo_stats` automatically if missing.
 
 For a more precise limit: `brew install cpulimit`.  
 `NO_CPU_LOG=1` disables CSV logging.
@@ -160,7 +168,7 @@ Set-Top-Infinity/
 ├── Makefile
 ├── assets/                  # textures, font, audio
 ├── music/                   # extra music sources
-└── tools/                   # CPU log, ATV slow runner
+└── tools/                   # CPU logger (C++), ATV slow runner
 ```
 
 ---
