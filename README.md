@@ -2,7 +2,7 @@
 
 OpenGL demoscene intro in C++ — classic effects (rotozoom, tunnel, twister, starfield, Julia set, credits/greets), timed at **60 FPS** and **1280×720** (fullscreen).
 
-Originally aimed at **Apple TV / set-top** style targets (lean Julia precalc, optional CPU throttling for testing). Builds and runs natively on **macOS**, **Linux**, and **Windows** (MinGW).
+Originally aimed at **Apple TV / set-top** style targets (CPU-live Julia, optional CPU throttling for testing). Builds and runs natively on **macOS**, **Linux**, and **Windows** (MinGW).
 
 Full demo length: **about 1:30** (90 seconds).
 
@@ -17,12 +17,12 @@ Full demo length: **about 1:30** (90 seconds).
 | 3 | `rotozoom`  | 8 s      | Rotozoomer (`Testbild.png`) |
 | 4 | `tunnel`    | 10 s     | Tunnel (`bdl.png`) |
 | 5 | `twister`   | 15 s     | Twister |
-| 6 | `starfield` | 20 s     | Starfield |
-| 7 | `julia`     | 14 s     | Julia zoom (chunked precalc during earlier scenes) |
+| 6 | `julia`     | 14 s     | CPU-live Julia zoom |
+| 7 | `starfield` | 20 s     | Final graphical effect before credits |
 | 8 | `credits`   | 9 s      | Credits |
 | 9 | `greets`    | 9 s      | Greets |
 
-Julia levels are **not** loaded from PNGs; they are computed at runtime (60 levels @ 512×288, per-frame budget by scene — see `EffectJulia.h`).
+The Julia is **not** loaded or prepared in stages. Every displayed frame is computed completely at runtime at 384×216. Four pixels are iterated together with SSE, palette lookup tables keep transcendental functions out of the pixel loop, and the finished frame is uploaded as RGB565. The camera moves from the overview to a true preperiodic Julia-boundary point so the deep zoom cannot run into the empty region around the origin. No partially updated frame is ever displayed.
 
 ---
 
@@ -83,7 +83,7 @@ demo.exe        # Windows
 
 Numbers `1`–`9` (or `0`–`8`) and e.g.:
 
-`logo` / `intro`, `wave` / `logo_wave`, `roto` / `rotozoom`, `tunnel`, `twister`, `starfield` / `stars`, `julia`, `credits`, `greets` / `greetz`
+`logo` / `intro`, `wave` / `logo_wave`, `roto` / `rotozoom`, `tunnel`, `twister`, `julia`, `starfield` / `stars`, `credits`, `greets` / `greetz`
 
 ### Keyboard (dev controls)
 
@@ -122,9 +122,29 @@ Audio can be disabled via `#define playaudio` in `main.cpp`.
 
 ---
 
-## Tools (macOS-oriented)
+## Tools
 
-`tools/` contains helpers for **CPU profiling** and **weak-hardware simulation** (Apple TV approximation) without changing demo code. The logger is a small **C++** binary (not linked into the demo).
+`tools/` contains helpers for **CPU profiling** and **weak-hardware simulation** (Apple TV approximation) without changing demo code. `make tools` builds the platform-appropriate C++ helper.
+
+### Windows
+
+```powershell
+mingw32-make tools
+
+# Approximately 10% of one logical CPU core, Julia solo mode
+.\tools\run_atv_slow_win.exe 10 julia
+
+# Clock-ratio approximation for a 1 GHz target
+.\tools\run_atv_slow_win.exe --mhz 1000 julia
+
+# Try a little more or less CPU
+.\tools\run_atv_slow_win.exe 15 julia
+.\tools\run_atv_slow_win.exe 5 julia
+```
+
+The Windows launcher uses a hard CPU cap, pins the demo to one logical core, and automatically closes the demo if the launcher exits. `--mhz` converts the requested clock to a fraction of the host clock reported by Windows; it cannot reproduce Pentium M IPC, cache behavior, turbo behavior, the GeForce Go 7300 GPU, memory bandwidth, or the old Apple/NVIDIA driver.
+
+### macOS / Linux
 
 ```bash
 # Build external logger once
@@ -160,8 +180,8 @@ Set-Top-Infinity/
 ├── EffectRotozoom.*
 ├── EffectTunnel.*
 ├── EffectTwister.*
-├── EffectStarfield.*
-├── EffectJulia.*            # chunked Julia precalc
+├── EffectJulia.*            # CPU-live Julia renderer
+├── EffectStarfield.*        # final graphical effect
 ├── EffectEndTitles.*        # credits + greets
 ├── vipgfx.h / glTTF.h       # graphics / font API
 ├── gettime.h
@@ -175,10 +195,10 @@ Set-Top-Infinity/
 
 ## Technical notes
 
-- **Target FPS:** 60 (`DEMO_FPS`)
+- **Target FPS:** 60 (`DEMO_FPS`), explicitly frame-paced even when VSync is disabled
 - **Resolution:** 1280×720, fullscreen (`openGLcontext`)
 - **Demo clock:** wall-clock based, pauseable and seekable — scene changes via frame offsets
-- **Julia:** precalc runs with a budget during logo … starfield; before drawing the Julia scene it may finish blocking
+- **Julia:** every frame is calculated live at 384×216 with SSE, then uploaded once as RGB565
 - **Windows path:** `getExecutableDir` currently returns `"."` on Windows — run the binary from the project root so `assets/` is found
 
 ---

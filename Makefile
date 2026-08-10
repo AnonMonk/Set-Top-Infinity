@@ -14,7 +14,7 @@ SRC = main.cpp \
 NAME = demo
 LIB_DIR := ./
 CXX = g++
-CXXFLAGS_BASE = -O2 -std=c++17
+CXXFLAGS_BASE = -O3 -msse2 -std=c++17
 
 # Default-Target: Hinweis, welches OS-Target man bauen soll
 .PHONY: all mac linux win clean info tools

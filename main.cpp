@@ -4,6 +4,8 @@
 #include <limits.h>
 #include <stdint.h>
 #include <string>
+#include <chrono>
+#include <thread>
 #include <sys/types.h>
 #include <unistd.h>
 #include <signal.h>
@@ -21,6 +23,9 @@
 	#include <mmsystem.h>
 	#include <GL/gl.h>
 	#define strcasecmp _stricmp
+	#ifndef CREATE_WAITABLE_TIMER_HIGH_RESOLUTION
+		#define CREATE_WAITABLE_TIMER_HIGH_RESOLUTION 0x00000002
+	#endif
 #endif
 
 
@@ -49,8 +54,8 @@ enum Scene
 	SCENE_ROTOZOOM = 2,
 	SCENE_TUNNEL = 3,
 	SCENE_TWISTER = 4,
-	SCENE_STARFIELD = 5,
-	SCENE_JULIA = 6,
+	SCENE_JULIA = 5,
+	SCENE_STARFIELD = 6,
 	SCENE_CREDITS = 7,
 	SCENE_GREETS = 8,
 	SCENE_COUNT = 9
@@ -62,8 +67,8 @@ static const char* sceneNames[SCENE_COUNT] = {
 	"rotozoom",
 	"tunnel",
 	"twister",
-	"starfield",
 	"julia",
+	"starfield",
 	"credits",
 	"greets"
 };
@@ -86,7 +91,6 @@ GLuint rotoTexture = 0;
 GLuint tunnelTexture = 0;
 GLuint fishHeadTexture = 0;
 GLuint fishTailTexture = 0;
-GLuint juliaTextures[JULIA_TEXTURE_COUNT];
 
 string executableDirectory;
 bool mainMusicStarted = false;
@@ -96,6 +100,7 @@ pid_t mainMusicProcess = -1;
 
 
 string getExecutableDir(char** argv) {
+	(void)argv;
 
 #ifdef __APPLE__
 	char path[PATH_MAX];
@@ -405,8 +410,8 @@ void handleDevKeys(int currentScene)
 	if (keyJustPressed(KEY_3)) jumpToScene(SCENE_ROTOZOOM);
 	if (keyJustPressed(KEY_4)) jumpToScene(SCENE_TUNNEL);
 	if (keyJustPressed(KEY_5)) jumpToScene(SCENE_TWISTER);
-	if (keyJustPressed(KEY_6)) jumpToScene(SCENE_STARFIELD);
-	if (keyJustPressed(KEY_7)) jumpToScene(SCENE_JULIA);
+	if (keyJustPressed(KEY_6)) jumpToScene(SCENE_JULIA);
+	if (keyJustPressed(KEY_7)) jumpToScene(SCENE_STARFIELD);
 	if (keyJustPressed(KEY_8)) jumpToScene(SCENE_CREDITS);
 	if (keyJustPressed(KEY_9)) jumpToScene(SCENE_GREETS);
 }
@@ -453,17 +458,12 @@ void drawScene(
 			drawTwisterEffect(animTime);
 			break;
 
-		case SCENE_STARFIELD:
-			drawStarfieldEffect(animTime, sceneDuration);
+		case SCENE_JULIA:
+			drawJuliaEffect(animTime, sceneDuration);
 			break;
 
-		case SCENE_JULIA:
-			drawJuliaEffect(
-				juliaTextures,
-				JULIA_TEXTURE_COUNT,
-				animTime,
-				sceneDuration
-			);
+		case SCENE_STARFIELD:
+			drawStarfieldEffect(animTime, sceneDuration);
 			break;
 
 		case SCENE_CREDITS:
@@ -543,43 +543,13 @@ bool update() {
 		if (tunnelFrame < 0) tunnelFrame = 0;
 		tunnelAnimTime = (float)tunnelFrame / (float)DEMO_FPS;
 
-		int creditsStartFrame =
-			sceneLength[SCENE_LOGO]
-			+ sceneLength[SCENE_LOGO_WAVE]
-			+ sceneLength[SCENE_ROTOZOOM]
-			+ sceneLength[SCENE_TUNNEL]
-			+ sceneLength[SCENE_TWISTER]
-			+ sceneLength[SCENE_STARFIELD]
-			+ sceneLength[SCENE_JULIA];
+		int creditsStartFrame = sceneStartFrame(SCENE_CREDITS);
 		int creditsFrame = totalFrame - creditsStartFrame;
 		if (creditsFrame < 0) creditsFrame = 0;
 		creditsAnimTime = (float)creditsFrame / (float)DEMO_FPS;
 	}
 
 	handleDevKeys(scene);
-
-	/* Julia-Precalc nur solange noetig (fertig = kein Tick mehr) */
-	if (!juliaPrecalcIsReady()) {
-		double budgetMs = 0.0;
-		if (soloMode) {
-			if (scene != SCENE_JULIA)
-				budgetMs = JULIA_BUDGET_SOLO_MS;
-		} else {
-			switch (scene) {
-				case SCENE_LOGO:      budgetMs = JULIA_BUDGET_LOGO_MS; break;
-				case SCENE_LOGO_WAVE: budgetMs = JULIA_BUDGET_WAVE_MS; break;
-				case SCENE_ROTOZOOM:  budgetMs = JULIA_BUDGET_ROTO_MS; break;
-				case SCENE_TUNNEL:    budgetMs = JULIA_BUDGET_TUNNEL_MS; break;
-				case SCENE_TWISTER:   budgetMs = JULIA_BUDGET_TWISTER_MS; break;
-				case SCENE_STARFIELD: budgetMs = JULIA_BUDGET_STARFIELD_MS; break;
-				default:              budgetMs = 0.0; break;
-			}
-		}
-		if (budgetMs > 0.0)
-			juliaPrecalcTick(budgetMs);
-		if (scene == SCENE_JULIA)
-			juliaPrecalcFinishBlocking();
-	}
 
 	drawScene(
 		scene,
@@ -625,9 +595,6 @@ void loadDemoTextures(const string& directory)
 		exit(0);
 	}
 
-	/* Julia: keine PNGs — Stufen-Precalc in den Vorszenen */
-	(void)directory;
-	juliaPrecalcInit(juliaTextures);
 }
 
 
@@ -641,8 +608,8 @@ int main(int argc, char** argv) {
 	sceneLength[SCENE_ROTOZOOM] = 60 * 8;
 	sceneLength[SCENE_TUNNEL] = 60 * 10;
 	sceneLength[SCENE_TWISTER] = 60 * 15;
-	sceneLength[SCENE_STARFIELD] = 60 * 20;
 	sceneLength[SCENE_JULIA] = 60 * 14;
+	sceneLength[SCENE_STARFIELD] = 60 * 20;
 	sceneLength[SCENE_CREDITS] = 60 * 9;
 	sceneLength[SCENE_GREETS] = 60 * 9;
 
@@ -703,13 +670,65 @@ int main(int argc, char** argv) {
 	lastWallMs = GetMilliseconds();
 	demoClockMs = 0;
 
+#ifdef _WIN32
+	/* sleep_until braucht unter Windows eine feinere Aufloesung als 15,6 ms. */
+	timeBeginPeriod(1);
+	HANDLE frameTimer = CreateWaitableTimerExW(
+		NULL,
+		NULL,
+		CREATE_WAITABLE_TIMER_HIGH_RESOLUTION,
+		TIMER_ALL_ACCESS
+	);
+	if (!frameTimer)
+		frameTimer = CreateWaitableTimerW(NULL, FALSE, NULL);
+#endif
+
 	bool quit = false;
+	const std::chrono::microseconds frameDuration(1000000 / DEMO_FPS);
+	auto nextFrameTime = std::chrono::steady_clock::now();
 	while (!keyboard[KEY_ESCAPE] && !quit) {
 		quit = update();
 		UpdateGFXsystem();
+
+		nextFrameTime += frameDuration;
+		const auto frameEnd = std::chrono::steady_clock::now();
+		if (frameEnd < nextFrameTime) {
+		#ifdef _WIN32
+			if (frameTimer) {
+				const auto remaining =
+					std::chrono::duration_cast<std::chrono::nanoseconds>(
+						nextFrameTime - frameEnd
+					).count();
+				LARGE_INTEGER dueTime;
+				dueTime.QuadPart = -(remaining / 100);
+				if (dueTime.QuadPart == 0)
+					dueTime.QuadPart = -1;
+				if (SetWaitableTimer(
+						frameTimer, &dueTime, 0, NULL, NULL, FALSE))
+				{
+					WaitForSingleObject(frameTimer, INFINITE);
+				} else {
+					std::this_thread::sleep_until(nextFrameTime);
+				}
+			} else {
+				std::this_thread::sleep_until(nextFrameTime);
+			}
+		#else
+			std::this_thread::sleep_until(nextFrameTime);
+		#endif
+		} else {
+			/* Keine Catch-up-Frames nach CPU-Spikes oder externer Drosselung. */
+			nextFrameTime = frameEnd;
+		}
 	}
 
-	juliaPrecalcShutdown();
+#ifdef _WIN32
+	if (frameTimer)
+		CloseHandle(frameTimer);
+	timeEndPeriod(1);
+#endif
+
+	juliaLiveShutdown();
 	FinishGFXsystem();
 	ReturnFPSstring();
 
