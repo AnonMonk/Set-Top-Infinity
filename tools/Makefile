@@ -1,7 +1,9 @@
 # Standalone build for the external CPU/RAM logger.
 
-TARGET := log_demo_stats
-SOURCE := log_demo_stats.cpp
+LOGGER_TARGET := log_demo_stats
+LOGGER_SOURCE := log_demo_stats.cpp
+WINDOWS_TARGET := run_atv_slow_win.exe
+WINDOWS_SOURCE := run_atv_slow_win.cpp
 
 CXX ?= g++
 CPPFLAGS ?=
@@ -12,31 +14,38 @@ LDLIBS ?=
 ifeq ($(OS),Windows_NT)
 SHELL := cmd.exe
 .SHELLFLAGS := /C
+ACTIVE_TARGET := $(WINDOWS_TARGET)
+ACTIVE_DESCRIPTION := Windows ATV CPU limiter
+else
+ACTIVE_TARGET := $(LOGGER_TARGET)
+ACTIVE_DESCRIPTION := POSIX CPU/RAM logger
 endif
 
 .PHONY: all clean help
 
-all: $(TARGET)
-
-$(TARGET): $(SOURCE) Makefile
 ifeq ($(OS),Windows_NT)
-	@echo $(TARGET) is only supported on macOS and Linux.
-	@echo It uses ps, pgrep and POSIX process APIs.
-	@exit /b 1
+all: $(WINDOWS_TARGET)
+
+$(WINDOWS_TARGET): $(WINDOWS_SOURCE) Makefile
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $(WINDOWS_SOURCE) -ladvapi32 $(LDLIBS)
 else
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $(SOURCE) $(LDLIBS)
+all: $(LOGGER_TARGET)
+
+$(LOGGER_TARGET): $(LOGGER_SOURCE) Makefile
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $(LOGGER_SOURCE) $(LDLIBS)
 endif
 
 clean:
 ifeq ($(OS),Windows_NT)
-	@if exist $(TARGET) del /Q $(TARGET)
-	@if exist $(TARGET).exe del /Q $(TARGET).exe
+	@if exist $(LOGGER_TARGET) del /Q $(LOGGER_TARGET)
+	@if exist $(LOGGER_TARGET).exe del /Q $(LOGGER_TARGET).exe
+	@if exist $(WINDOWS_TARGET) del /Q $(WINDOWS_TARGET)
 else
-	rm -f $(TARGET) $(TARGET).exe
+	rm -f $(LOGGER_TARGET) $(LOGGER_TARGET).exe $(WINDOWS_TARGET)
 endif
 
 help:
 	@echo Targets:
-	@echo   make        Build $(TARGET)
-	@echo   make clean  Remove the logger binary
+	@echo   make        Build $(ACTIVE_TARGET) - $(ACTIVE_DESCRIPTION)
+	@echo   make clean  Remove tool binaries
 	@echo   make help   Show this help
