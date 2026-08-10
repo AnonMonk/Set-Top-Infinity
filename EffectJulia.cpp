@@ -1,10 +1,11 @@
 #include "EffectJulia.h"
 
-#include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <stdint.h>
+
+#include "gettime.h"
 
 #ifdef __linux__
 #include <GL/gl.h>
@@ -53,17 +54,9 @@ namespace
 	float gSmoothCorrection[kRadiusTableSize];
 	bool gInited = false;
 	float gLastAnimTime = -1.0f;
-	std::uint64_t gStatsMicroseconds = 0;
+	uint64_t gStatsMicroseconds = 0;
 	int gStatsFrames = 0;
 	int gEscapedPixels = 0;
-
-	std::uint64_t nowMicroseconds()
-	{
-		using namespace std::chrono;
-		return (std::uint64_t)duration_cast<microseconds>(
-			steady_clock::now().time_since_epoch()
-		).count();
-	}
 
 	float clamp01(float value)
 	{
@@ -348,12 +341,12 @@ void drawJuliaEffect(float animTime, float duration)
 
 	if (gLastAnimTime < 0.0f || fabsf(animTime - gLastAnimTime) >= 0.0001f)
 	{
-		const std::uint64_t start = nowMicroseconds();
+		const uint64_t start = GetMicroseconds();
 		const float progress = clamp01(animTime / duration);
 		const int maxIter = renderFrame(progress);
 		uploadFrame();
 		gLastAnimTime = animTime;
-		gStatsMicroseconds += nowMicroseconds() - start;
+		gStatsMicroseconds += GetMicroseconds() - start;
 		++gStatsFrames;
 
 		if (gStatsFrames >= 60)
@@ -417,9 +410,14 @@ static void initJuliaLiveRenderer()
 	gStatsFrames = 0;
 	gInited = true;
 	printf(
-		"[Julia CPU live] START c=(%.3f, %.3f), SSE, %dx%d, RGB565\n",
+		"[Julia CPU live] START c=(%.3f, %.3f), %s, %dx%d, RGB565\n",
 		kJuliaCRe,
 		kJuliaCIm,
+#if defined(__SSE__)
+		"SSE",
+#else
+		"scalar",
+#endif
 		kWidth,
 		kHeight
 	);

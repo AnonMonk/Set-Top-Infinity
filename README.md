@@ -2,7 +2,7 @@
 
 OpenGL demoscene intro in C++ — classic effects (rotozoom, tunnel, twister, starfield, Julia set, credits/greets), timed at **60 FPS** and **1280×720** (fullscreen).
 
-Originally aimed at **Apple TV / set-top** style targets (CPU-live Julia, optional CPU throttling for testing). Builds and runs natively on **macOS**, **Linux**, and **Windows** (MinGW).
+Originally aimed at **Apple TV / set-top** style targets (CPU-live Julia, optional CPU throttling for testing). The demo source is compatible with the old compiler on the **first-generation Intel Apple TV** and also builds natively on current **macOS**, **Linux**, and **Windows** (MinGW).
 
 Full demo length: **about 1:30** (90 seconds).
 
@@ -22,13 +22,13 @@ Full demo length: **about 1:30** (90 seconds).
 | 8 | `credits`   | 9 s      | Credits |
 | 9 | `greets`    | 9 s      | Greets |
 
-The Julia is **not** loaded or prepared in stages. Every displayed frame is computed completely at runtime at 384×216. Four pixels are iterated together with SSE, palette lookup tables keep transcendental functions out of the pixel loop, and the finished frame is uploaded as RGB565. The camera moves from the overview to a true preperiodic Julia-boundary point so the deep zoom cannot run into the empty region around the origin. No partially updated frame is ever displayed.
+The Julia is **not** loaded or prepared in stages. Every displayed frame is computed completely at runtime at 384×216. On Intel, four pixels are iterated together with SSE; ARM uses the scalar fallback. Palette lookup tables keep transcendental functions out of the pixel loop, and the finished frame is uploaded as RGB565. The camera moves from the overview to a true preperiodic Julia-boundary point so the deep zoom cannot run into the empty region around the origin. No partially updated frame is ever displayed.
 
 ---
 
 ## Requirements
 
-- **C++17** compiler (`g++`)
+- C++98-capable compiler (`g++`) for the demo; the optional tools require C++17
 - **OpenGL**
 - Bundled libraries in the project root:
   - `vipgfx` — window, input, PNG, timing (`vipgfx.h`)
@@ -44,7 +44,11 @@ The Julia is **not** loaded or prepared in stages. Every displayed frame is comp
 | Linux    | `libvipgfx.so`, `libglTTF.so`       | `-lGL -lvipgfx -lglTTF` |
 | Windows  | `vipgfx.dll`, `glTTF.dll` (+ import libs) | `-lopengl32 -lvipgfx -lglTTF -lwinmm` |
 
-DLL/SO/DYLIB files must sit next to the binary (or on the library path) at launch.
+The bundled `libglTTF.dylib` contains i386, x86_64, and arm64 code and exports
+the real `getTextSize` implementation used to center the end scroller.
+
+DLL/SO/DYLIB files can sit next to the binary. Linux embeds an `$ORIGIN`
+runtime search path; the macOS libraries already use `@executable_path`.
 
 ---
 
@@ -59,6 +63,11 @@ make info     # print sources / targets
 ```
 
 Running plain `make` only prints which platform target to use.
+
+`make mac` detects the compiler target. Intel builds use `-msse2`; ARM64
+builds omit that x86-only option and use the scalar Julia path. On a
+first-generation Apple TV, use the same `make mac` command. No C++17 option is
+passed to its legacy GCC.
 
 ---
 
@@ -198,8 +207,8 @@ Set-Top-Infinity/
 - **Target FPS:** 60 (`DEMO_FPS`), explicitly frame-paced even when VSync is disabled
 - **Resolution:** 1280×720, fullscreen (`openGLcontext`)
 - **Demo clock:** wall-clock based, pauseable and seekable — scene changes via frame offsets
-- **Julia:** every frame is calculated live at 384×216 with SSE, then uploaded once as RGB565
-- **Windows path:** `getExecutableDir` currently returns `"."` on Windows — run the binary from the project root so `assets/` is found
+- **Julia:** every frame is calculated live at 384×216, using SSE on Intel and a scalar fallback on ARM, then uploaded once as RGB565
+- **Asset path:** macOS, Linux, and Windows resolve `assets/` relative to the executable, independent of the current working directory
 
 ---
 

@@ -1,16 +1,52 @@
 #ifndef GETTIME_H
 #define GETTIME_H
 
-#include <chrono>
-#include <cstdint>
+#include <stdint.h>
 
-std::uint64_t GetMilliseconds()
+#ifdef _WIN32
+#include <windows.h>
+#elif defined(__APPLE__)
+#include <mach/mach_time.h>
+#else
+#include <sys/time.h>
+#endif
+
+/*
+ * Monotonic timer without C++11.  The first-generation Apple TV ships with
+ * an old GCC/libstdc++, so std::chrono is not available there.
+ */
+inline uint64_t GetMicroseconds()
 {
-    using namespace std::chrono;
+#ifdef _WIN32
+    static LARGE_INTEGER frequency = { 0 };
+    LARGE_INTEGER counter;
+    if (frequency.QuadPart == 0)
+        QueryPerformanceFrequency(&frequency);
+    QueryPerformanceCounter(&counter);
+    return (uint64_t)(
+        (double)counter.QuadPart * 1000000.0 / (double)frequency.QuadPart
+    );
+#elif defined(__APPLE__)
+    static mach_timebase_info_data_t timebase = { 0, 0 };
+    if (timebase.denom == 0)
+        mach_timebase_info(&timebase);
+    return (uint64_t)(
+        (double)mach_absolute_time()
+        * (double)timebase.numer
+        / (double)timebase.denom
+        / 1000.0
+    );
+#else
+    struct timeval value;
+    gettimeofday(&value, 0);
+    return (uint64_t)value.tv_sec * (uint64_t)1000000
+        + (uint64_t)value.tv_usec;
+#endif
+}
 
-    return duration_cast<milliseconds>(
-        steady_clock::now().time_since_epoch()
-    ).count();
+inline uint64_t GetMilliseconds()
+{
+    return GetMicroseconds() / (uint64_t)1000;
 }
 
 #endif

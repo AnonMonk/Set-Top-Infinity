@@ -4,8 +4,6 @@
 #include <limits.h>
 #include <stdint.h>
 #include <string>
-#include <chrono>
-#include <thread>
 #include <sys/types.h>
 #include <unistd.h>
 #include <signal.h>
@@ -76,8 +74,8 @@ static const char* sceneNames[SCENE_COUNT] = {
 int sceneLength[SCENE_COUNT];
 
 /* Virtuelle Demo-Uhr (pausier- und springbar) */
-long long demoClockMs = 0;
-unsigned long long lastWallMs = 0;
+int64_t demoClockMs = 0;
+uint64_t lastWallMs = 0;
 bool paused = false;
 
 /* Solo-Mode: nur eine Szene, geloopt (CLI oder per Taste umgeschaltet) */
@@ -100,9 +98,17 @@ pid_t mainMusicProcess = -1;
 
 
 string getExecutableDir(char** argv) {
-	(void)argv;
-
-#ifdef __APPLE__
+#ifdef _WIN32
+	char path[MAX_PATH];
+	DWORD length = GetModuleFileNameA(NULL, path, MAX_PATH);
+	if (length > 0 && length < MAX_PATH)
+	{
+		string fullPath(path, (size_t)length);
+		size_t pos = fullPath.find_last_of("/\\");
+		if (pos != string::npos)
+			return fullPath.substr(0, pos);
+	}
+#elif defined(__APPLE__)
 	char path[PATH_MAX];
 	uint32_t size = sizeof(path);
 	if (_NSGetExecutablePath(path, &size) == 0)
@@ -112,8 +118,26 @@ string getExecutableDir(char** argv) {
 		if (pos != string::npos)
 			return fullPath.substr(0, pos);
 	}
+#elif defined(__linux__)
+	char path[PATH_MAX];
+	ssize_t length = readlink("/proc/self/exe", path, sizeof(path) - 1);
+	if (length > 0)
+	{
+		path[length] = '\0';
+		string fullPath = path;
+		size_t pos = fullPath.find_last_of('/');
+		if (pos != string::npos)
+			return fullPath.substr(0, pos);
+	}
 #endif
 
+	if (argv != NULL && argv[0] != NULL)
+	{
+		string invokedPath = argv[0];
+		size_t pos = invokedPath.find_last_of("/\\");
+		if (pos != string::npos)
+			return invokedPath.substr(0, pos);
+	}
 	return ".";
 }
 
@@ -177,7 +201,9 @@ if (!playaudio) {
 	if (*process < 0) return false;
 
 	if (*process == 0) {
-		execlp("pw-play", "pw-play", filename.c_str(), static_cast<char*>(nullptr));
+		execlp("pw-play", "pw-play", filename.c_str(), (char*)0);
+		execlp("paplay", "paplay", filename.c_str(), (char*)0);
+		execlp("aplay", "aplay", "-q", filename.c_str(), (char*)0);
 		_exit(127);
 	}
 #endif
@@ -273,15 +299,15 @@ void seekToScene(int scene)
 {
 	if (scene < 0 || scene >= SCENE_COUNT)
 		return;
-	demoClockMs = (long long)sceneStartFrame(scene) * 1000 / DEMO_FPS;
+	demoClockMs = (int64_t)sceneStartFrame(scene) * 1000 / DEMO_FPS;
 }
 
 
 void tickDemoClock()
 {
-	unsigned long long wall = GetMilliseconds();
+	uint64_t wall = GetMilliseconds();
 	if (!paused)
-		demoClockMs += (long long)(wall - lastWallMs);
+		demoClockMs += (int64_t)(wall - lastWallMs);
 	lastWallMs = wall;
 	if (demoClockMs < 0)
 		demoClockMs = 0;
@@ -684,23 +710,20 @@ int main(int argc, char** argv) {
 #endif
 
 	bool quit = false;
-	const std::chrono::microseconds frameDuration(1000000 / DEMO_FPS);
-	auto nextFrameTime = std::chrono::steady_clock::now();
+	const uint64_t frameDurationUs = (uint64_t)1000000 / (uint64_t)DEMO_FPS;
+	uint64_t nextFrameTimeUs = GetMicroseconds();
 	while (!keyboard[KEY_ESCAPE] && !quit) {
 		quit = update();
 		UpdateGFXsystem();
 
-		nextFrameTime += frameDuration;
-		const auto frameEnd = std::chrono::steady_clock::now();
-		if (frameEnd < nextFrameTime) {
+		nextFrameTimeUs += frameDurationUs;
+		const uint64_t frameEndUs = GetMicroseconds();
+		if (frameEndUs < nextFrameTimeUs) {
+			const uint64_t remainingUs = nextFrameTimeUs - frameEndUs;
 		#ifdef _WIN32
 			if (frameTimer) {
-				const auto remaining =
-					std::chrono::duration_cast<std::chrono::nanoseconds>(
-						nextFrameTime - frameEnd
-					).count();
 				LARGE_INTEGER dueTime;
-				dueTime.QuadPart = -(remaining / 100);
+				dueTime.QuadPart = -((LONGLONG)remainingUs * 10);
 				if (dueTime.QuadPart == 0)
 					dueTime.QuadPart = -1;
 				if (SetWaitableTimer(
@@ -708,17 +731,17 @@ int main(int argc, char** argv) {
 				{
 					WaitForSingleObject(frameTimer, INFINITE);
 				} else {
-					std::this_thread::sleep_until(nextFrameTime);
+					Sleep((DWORD)((remainingUs + 999) / 1000));
 				}
 			} else {
-				std::this_thread::sleep_until(nextFrameTime);
+				Sleep((DWORD)((remainingUs + 999) / 1000));
 			}
 		#else
-			std::this_thread::sleep_until(nextFrameTime);
+			usleep((unsigned int)remainingUs);
 		#endif
 		} else {
 			/* Keine Catch-up-Frames nach CPU-Spikes oder externer Drosselung. */
-			nextFrameTime = frameEnd;
+			nextFrameTimeUs = frameEndUs;
 		}
 	}
 

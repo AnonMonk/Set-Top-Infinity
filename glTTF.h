@@ -2,7 +2,7 @@
 #define FONT_H
 
 
-#include <cstdint>
+#include <stdint.h>
 
 typedef struct
 {

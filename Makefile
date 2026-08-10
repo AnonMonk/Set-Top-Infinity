@@ -14,7 +14,11 @@ SRC = main.cpp \
 NAME = demo
 LIB_DIR := ./
 CXX = g++
-CXXFLAGS_BASE = -O3 -msse2 -std=c++17
+TARGET_TRIPLE ?= $(shell $(CXX) -dumpmachine)
+X86_MARKERS := i386 i486 i586 i686 x86_64 amd64
+X86_TARGET := $(strip $(foreach arch,$(X86_MARKERS),$(findstring $(arch),$(TARGET_TRIPLE))))
+SSE2_FLAGS := $(if $(X86_TARGET),-msse2,)
+CXXFLAGS_BASE = -O3 $(SSE2_FLAGS)
 
 # Default-Target: Hinweis, welches OS-Target man bauen soll
 .PHONY: all mac linux win clean info tools
@@ -38,7 +42,7 @@ mac:
 # =========================
 linux:
 	$(CXX) $(SRC) -o $(NAME) $(CXXFLAGS_BASE) -Wall -L$(LIB_DIR) \
-		-lGL -lvipgfx -lglTTF
+		-Wl,-rpath,'$$ORIGIN' -lGL -lvipgfx -lglTTF
 
 # =========================
 # Windows (MinGW)
@@ -64,6 +68,8 @@ info:
 	@echo "SRC     = $(SRC)"
 	@echo "NAME    = $(NAME)"
 	@echo "CXX     = $(CXX)"
+	@echo "TARGET  = $(TARGET_TRIPLE)"
+	@echo "SSE2    = $(SSE2_FLAGS)"
 	@echo "LIB_DIR = $(LIB_DIR)"
 	@echo ""
 	@echo "Targets: make mac | make linux | make win | make tools | make clean | make info"
