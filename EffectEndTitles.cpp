@@ -14,8 +14,6 @@
 #include "glTTF.h"
 #include "vipgfx.h"
 
-#include <cstring>
-
 namespace
 {
 	const float kScreenW = 1280.0f;
@@ -24,8 +22,6 @@ namespace
 	const float kLineHeight = 56.0f;
 	// Demo-Szenen CREDITS/GREETS sind je ~9s — Scroll so, dass der Block durchläuft
 	const float kSceneDuration = 9.0f;
-	// Zentrier-Faktor (ähnlich Logo-Text, bei dir ~0.40)
-	const float kCharWidthFactor = 0.40f;
 
 	aFont titlesFont = {};
 
@@ -90,9 +86,10 @@ namespace
 		if (text == 0 || text[0] == '\0')
 			return 0;
 
-		const float estimatedW =
-			(float)strlen(text) * kFontSize * kCharWidthFactor;
-		return (int)((kScreenW - estimatedW) * 0.5f);
+		uint32_t textWidth = 0;
+		uint32_t textHeight = 0;
+		getTextSize(titlesFont, text, &textWidth, &textHeight);
+		return (int)((kScreenW - (float)textWidth) * 0.5f);
 	}
 
 	// Grün im vipgfx-Farbformat (RGBA-Helfer)

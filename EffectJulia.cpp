@@ -160,6 +160,7 @@ namespace
 		PixelResult* results
 	)
 	{
+/*
 #if defined(__SSE__)
 		__m128 zx = _mm_set_ps(
 			firstX + 3.0f * stepX,
@@ -212,9 +213,10 @@ namespace
 				? radii[lane] : 0.0f;
 		}
 #else
+*/
 		for (int lane = 0; lane < count; ++lane)
 			results[lane] = iterateScalar(firstX + (float)lane * stepX, y, maxIter);
-#endif
+//#endif
 	}
 
 	uint16_t colorFromResult(const PixelResult& result)
