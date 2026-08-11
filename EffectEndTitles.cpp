@@ -44,7 +44,7 @@ namespace
 		"CHUDAK",
 		"",
 		"MUSIC:",
-		"ADDIS BEATS",
+		"AUDIO MONSTERS",
 		"",
 		"ADDITIONAL CODE:",
 		"KEY REAL",
