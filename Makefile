@@ -11,6 +11,8 @@ SRC = main.cpp \
       EffectTunnel.cpp \
       EffectTwister.cpp
 
+MAC_SRC = MacSound.mm
+
 NAME = demo
 LIB_DIR := ./
 CXX = g++
@@ -34,8 +36,8 @@ all:
 # macOS
 # =========================
 mac:
-	$(CXX) $(SRC) -o $(NAME) $(CXXFLAGS_BASE) -w -L$(LIB_DIR) \
-		-framework OpenGL -lvipgfx -lglTTF
+	$(CXX) $(SRC) $(MAC_SRC) -o $(NAME) $(CXXFLAGS_BASE) -w -L$(LIB_DIR) \
+		-framework OpenGL -framework Cocoa -lvipgfx -lglTTF
 
 # =========================
 # Linux

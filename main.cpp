@@ -39,6 +39,10 @@
 #include "EffectTunnel.h"
 #include "EffectTwister.h"
 
+#ifdef __APPLE__
+#include "MacSound.h"
+#endif
+
 #define playaudio true
 
 const int DEMO_FPS = 60;
@@ -95,6 +99,13 @@ bool mainMusicStarted = false;
 
 pid_t introAudioProcess = -1;
 pid_t mainMusicProcess = -1;
+
+#ifdef __APPLE__
+MacSound preparedIntroSound;
+MacSound preparedMainMusic;
+bool introSoundReady = false;
+bool mainMusicReady = false;
+#endif
 
 
 string getExecutableDir(char** argv) {
@@ -161,6 +172,10 @@ void stopAllAudio() {
 	introAudioProcess = -1;
 	mainMusicProcess = -1;
 #else
+	#ifdef __APPLE__
+	preparedIntroSound.shutdown();
+	preparedMainMusic.shutdown();
+	#endif
 	stopSound(&introAudioProcess);
 	stopSound(&mainMusicProcess);
 #endif
@@ -214,8 +229,9 @@ if (!playaudio) {
 
 GLuint loadTextureRGBA(const string& filename, bool repeatMode) {
 
-	gfxImage pic;
-	pngLoad(pic, filename.c_str());
+	gfxImage pic = { 0, 0, 0 };
+	if (!pngLoad(pic, filename.c_str()))
+		return 0;
 
 	GLuint texture;
 
@@ -244,6 +260,9 @@ GLuint loadTextureRGBA(const string& filename, bool repeatMode) {
 		GL_UNSIGNED_BYTE,
 		pic.data
 	);
+
+	/* glTexImage2D kopiert die Pixel; der CPU-Puffer wird danach nicht gebraucht. */
+	FreeImage(pic);
 
 	return texture;
 }
@@ -518,6 +537,12 @@ bool update() {
 #ifdef _WIN32
 		if (!playSound(executableDirectory + "/assets/neon.wav", &mainMusicProcess))
 			printf("Warnung: neon.wav konnte nicht gestartet werden.\n");
+#elif defined(__APPLE__)
+		if (!mainMusicReady || !preparedMainMusic.start()) {
+			printf("NSSound nicht bereit; starte neon.aiff mit afplay.\n");
+			if (!playSound(executableDirectory + "/assets/neon.aiff", &mainMusicProcess))
+				printf("Warnung: neon.aiff konnte nicht gestartet werden.\n");
+		}
 #else
 		if (!playSound(executableDirectory + "/assets/neon.aiff", &mainMusicProcess))
 			printf("Warnung: neon.aiff konnte nicht gestartet werden.\n");
@@ -676,18 +701,49 @@ int main(int argc, char** argv) {
 
 	openGLcontext(1280, 720, true);
 
-
 	executableDirectory = getExecutableDir(argv);
 
 	loadDemoTextures(executableDirectory);
-
 	loadFontLogo();
 	loadFontEndTitles();
 
-	/* Windows: WAV + PlaySound | Apple/Linux: AIFF + afplay/pw-play */
+	/* Erst das echte erste Demo-Frame sichtbar machen, noch ohne Ton. */
+	int startupScene = soloMode ? soloScene : SCENE_LOGO;
+	float startupDuration =
+		(float)sceneLength[startupScene] / (float)DEMO_FPS;
+	drawScene(startupScene, 0.0f, 0.0f, 0.0f, 0.0f, startupDuration);
+	glFinish();
+	UpdateGFXsystem();
+
+#ifdef __APPLE__
+	/*
+	 * Beide Sounds stumm anlaufen lassen, pausieren und auf Position 0 setzen.
+	 * Das sichtbare erste Demo-Frame bleibt waehrenddessen auf dem Fernseher.
+	 */
+	if (playaudio) {
+		introSoundReady = preparedIntroSound.prepare(
+			(executableDirectory + "/assets/Introsound.aiff").c_str()
+		);
+		mainMusicReady = preparedMainMusic.prepare(
+			(executableDirectory + "/assets/neon.aiff").c_str()
+		);
+		if (!introSoundReady)
+			printf("NSSound-Vorbereitung fuer Introsound.aiff fehlgeschlagen.\n");
+		if (!mainMusicReady)
+			printf("NSSound-Vorbereitung fuer neon.aiff fehlgeschlagen.\n");
+	}
+#endif
+
+	/* Windows: PlaySound | Apple: NSSound | Linux: pw-play */
 #ifdef _WIN32
 	if (!playSound(executableDirectory + "/assets/Introsound.wav", &introAudioProcess))
 		printf("Warnung: Introsound.wav konnte nicht gestartet werden.\n");
+#elif defined(__APPLE__)
+	if (!introSoundReady || !preparedIntroSound.start()) {
+		printf("NSSound nicht bereit; starte Introsound.aiff mit afplay.\n");
+		if (!playSound(executableDirectory + "/assets/Introsound.aiff", &introAudioProcess))
+			printf("Warnung: Introsound.aiff konnte nicht gestartet werden.\n");
+	}
 #else
 	if (!playSound(executableDirectory + "/assets/Introsound.aiff", &introAudioProcess))
 		printf("Warnung: Introsound.aiff konnte nicht gestartet werden.\n");
@@ -751,11 +807,10 @@ int main(int argc, char** argv) {
 	timeEndPeriod(1);
 #endif
 
+	stopAllAudio();
 	juliaLiveShutdown();
 	FinishGFXsystem();
 	ReturnFPSstring();
-
-	stopAllAudio();
 
 	return 0;
 }

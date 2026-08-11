@@ -109,10 +109,15 @@ Numbers `1`–`9` (or `0`–`8`) and e.g.:
 
 | Phase        | Windows                 | macOS / Linux              | Player |
 |--------------|-------------------------|----------------------------|--------|
-| Intro        | `assets/Introsound.wav` | `assets/Introsound.aiff`   | Win: `PlaySound`, macOS: `afplay`, Linux: `pw-play` |
-| Main music   | `assets/neon.wav`       | `assets/neon.aiff`         | starts after the logo scene |
+| Intro        | `assets/Introsound.wav` | `assets/Introsound.aiff`   | Win: `PlaySound`, macOS/Apple TV: prepared `NSSound`, Linux: `pw-play` |
+| Main music   | `assets/neon.wav`       | `assets/neon.aiff`         | starts after the logo scene; prepared on macOS/Apple TV |
 
 MP3 variants and `music/Neon Velocity no lyrics.mp3` are also in the repo — the demo itself plays the WAV/AIFF paths under `assets/`.
+
+On macOS and the Apple TV, the real first demo frame is presented before any
+audible sound starts. Intro and main music are loaded into `NSSound`, started
+silently once, paused, and reset to time zero. The demo then resumes the prepared
+intro without launching another process. `afplay` remains the error fallback.
 
 Audio can be disabled via `#define playaudio` in `main.cpp`.
 
@@ -193,6 +198,7 @@ Set-Top-Infinity/
 ├── EffectStarfield.*        # final graphical effect
 ├── EffectEndTitles.*        # credits + greets
 ├── vipgfx.h / glTTF.h       # graphics / font API
+├── MacSound.*               # small macOS/Apple TV audio preload wrapper
 ├── gettime.h
 ├── Makefile
 ├── assets/                  # textures, font, audio
