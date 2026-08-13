@@ -656,9 +656,9 @@ int main(int argc, char** argv) {
 
 	sceneLength[SCENE_LOGO] = 60 * 3;
 	sceneLength[SCENE_LOGO_WAVE] = 60 * 2;
-	sceneLength[SCENE_ROTOZOOM] = 60 * 8;
-	sceneLength[SCENE_TUNNEL] = 60 * 10;
-	sceneLength[SCENE_TWISTER] = 60 * 15;
+	sceneLength[SCENE_ROTOZOOM] = 60 * 10;
+	sceneLength[SCENE_TUNNEL] = 60 * 12;
+	sceneLength[SCENE_TWISTER] = 60 * 12;
 	sceneLength[SCENE_JULIA] = 60 * 14;
 	sceneLength[SCENE_STARFIELD] = 60 * 20;
 	sceneLength[SCENE_CREDITS] = 60 * 9;
