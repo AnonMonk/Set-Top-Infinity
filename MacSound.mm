@@ -41,6 +41,8 @@ bool MacSound::prepare(const char* filename)
 	}
 
 	sound = loadedSound;
+	/* Die Demo-Musik darf nach dem Dateiende niemals neu beginnen. */
+	[loadedSound setLoops:NO];
 	[loadedSound setVolume:0.0f];
 	BOOL started = [loadedSound play];
 
@@ -77,7 +79,9 @@ bool MacSound::start()
 		return false;
 
 	NSAutoreleasePool* pool = [[NSAutoreleasePool alloc] init];
-	BOOL result = [(NSSound*)sound resume];
+	NSSound* loadedSound = (NSSound*)sound;
+	[loadedSound setLoops:NO];
+	BOOL result = [loadedSound resume];
 	[pool drain];
 	return result == YES;
 }

@@ -1,10 +1,10 @@
 # Set-Top-Infinity
 
-OpenGL demoscene intro in C++ — classic effects (rotozoom, tunnel, twister, starfield, Julia set, credits/greets), timed at **60 FPS** and **1280×720** (fullscreen).
+OpenGL demoscene intro in C++ — classic effects (rotozoom, tunnel, twister, Julia set, Amiga Boing Ball, starfield, credits/greets), timed at **60 FPS** and **1280×720** (fullscreen).
 
 Originally aimed at **Apple TV / set-top** style targets (CPU-live Julia, optional CPU throttling for testing). The demo source is compatible with the old compiler on the **first-generation Intel Apple TV** and also builds natively on current **macOS**, **Linux**, and **Windows** (MinGW).
 
-Full demo length: **about 1:30** (90 seconds).
+Full demo length: **about 1:41** (101 seconds).
 
 ---
 
@@ -14,13 +14,14 @@ Full demo length: **about 1:30** (90 seconds).
 |---|-------------|----------|-------------|
 | 1 | `logo`      | 3 s      | Logo intro (fish head/tail) |
 | 2 | `wave`      | 2 s      | Transition logo → rotozoom |
-| 3 | `rotozoom`  | 8 s      | Rotozoomer (`Testbild.png`) |
-| 4 | `tunnel`    | 10 s     | Tunnel (`bdl.png`) |
-| 5 | `twister`   | 15 s     | Twister |
+| 3 | `rotozoom`  | 10 s     | Rotozoomer (`Testbild.png`) |
+| 4 | `tunnel`    | 12 s     | Tunnel (`bdl.png`) |
+| 5 | `twister`   | 12 s     | Twister |
 | 6 | `julia`     | 14 s     | CPU-live Julia zoom |
-| 7 | `starfield` | 20 s     | Final graphical effect before credits |
-| 8 | `credits`   | 9 s      | Credits |
-| 9 | `greets`    | 9 s      | Greets |
+| 7 | `ball`      | 10 s     | Classic red/white Amiga Boing Ball |
+| 8 | `starfield` | 20 s     | Final graphical effect before credits |
+| 9 | `credits`   | 9 s      | Credits |
+| 10 | `greets`   | 9 s      | Greets |
 
 The Julia is **not** loaded or prepared in stages. Every displayed frame is computed completely at runtime at 384×216. On Intel, four pixels are iterated together with SSE; ARM uses the scalar fallback. Palette lookup tables keep transcendental functions out of the pixel loop, and the finished frame is uploaded as RGB565. The camera moves from the overview to a true preperiodic Julia-boundary point so the deep zoom cannot run into the empty region around the origin. No partially updated frame is ever displayed.
 
@@ -82,6 +83,7 @@ demo.exe        # Windows
 ./demo tunnel
 ./demo 4
 ./demo julia
+./demo ball
 ./demo greetz
 
 # Help
@@ -90,15 +92,15 @@ demo.exe        # Windows
 
 ### Scene names (CLI)
 
-Numbers `1`–`9` (or `0`–`8`) and e.g.:
+Numbers `1`–`10` and e.g.:
 
-`logo` / `intro`, `wave` / `logo_wave`, `roto` / `rotozoom`, `tunnel`, `twister`, `julia`, `starfield` / `stars`, `credits`, `greets` / `greetz`
+`logo` / `intro`, `wave` / `logo_wave`, `roto` / `rotozoom`, `tunnel`, `twister`, `julia`, `ball` / `amigaball` / `boing`, `starfield` / `stars`, `credits`, `greets` / `greetz`
 
 ### Keyboard (dev controls)
 
 | Key     | Action |
 |---------|--------|
-| `1`–`9` | Jump to scene (or switch solo scene) |
+| `1`–`9`, `0` | Jump to scene 1–10 (or switch solo scene) |
 | `R`     | Restart current scene |
 | `Space` | Pause / resume (virtual demo clock) |
 | `ESC`   | Quit |
@@ -195,6 +197,7 @@ Set-Top-Infinity/
 ├── EffectTunnel.*
 ├── EffectTwister.*
 ├── EffectJulia.*            # CPU-live Julia renderer
+├── EffectBall.*             # Amiga Boing Ball
 ├── EffectStarfield.*        # final graphical effect
 ├── EffectEndTitles.*        # credits + greets
 ├── vipgfx.h / glTTF.h       # graphics / font API

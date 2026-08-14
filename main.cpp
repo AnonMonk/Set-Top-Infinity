@@ -31,6 +31,7 @@
 #include "glTTF.h"
 #include "gettime.h"
 
+#include "EffectBall.h"
 #include "EffectEndTitles.h"
 #include "EffectLogo.h"
 #include "EffectJulia.h"
@@ -57,10 +58,11 @@ enum Scene
 	SCENE_TUNNEL = 3,
 	SCENE_TWISTER = 4,
 	SCENE_JULIA = 5,
-	SCENE_STARFIELD = 6,
-	SCENE_CREDITS = 7,
-	SCENE_GREETS = 8,
-	SCENE_COUNT = 9
+	SCENE_BALL = 6,
+	SCENE_STARFIELD = 7,
+	SCENE_CREDITS = 8,
+	SCENE_GREETS = 9,
+	SCENE_COUNT = 10
 };
 
 static const char* sceneNames[SCENE_COUNT] = {
@@ -70,6 +72,7 @@ static const char* sceneNames[SCENE_COUNT] = {
 	"tunnel",
 	"twister",
 	"julia",
+	"ball",
 	"starfield",
 	"credits",
 	"greets"
@@ -357,7 +360,7 @@ void printUsage()
 	for (i = 0; i < SCENE_COUNT; i++)
 		printf("  %d  %s\n", i + 1, sceneNames[i]);
 	printf("Also: logo_wave, roto, julia, stars, greetz, intro, ...\n");
-	printf("Keys: 1-9 scene, R restart, Space pause, ESC quit\n");
+	printf("Keys: 1-9/0 scene, R restart, Space pause, ESC quit\n");
 }
 
 
@@ -368,11 +371,13 @@ int parseSceneName(const char* name)
 	if (name == NULL || name[0] == '\0')
 		return -1;
 
-	/* Zahlen 1-9 oder 0-8 */
+	/* Szenennummern 1-10; 0 bleibt als Alias fuer die erste Szene erhalten. */
+	if (strcmp(name, "10") == 0)
+		return SCENE_GREETS;
 	if (name[0] >= '1' && name[0] <= '9' && name[1] == '\0')
 		return name[0] - '1';
-	if (name[0] >= '0' && name[0] <= '8' && name[1] == '\0')
-		return name[0] - '0';
+	if (name[0] == '0' && name[1] == '\0')
+		return SCENE_LOGO;
 
 	if (strcasecmp(name, "logo") == 0 || strcasecmp(name, "intro") == 0)
 		return SCENE_LOGO;
@@ -391,6 +396,10 @@ int parseSceneName(const char* name)
 		return SCENE_TWISTER;
 	if (strcasecmp(name, "julia") == 0 || strcasecmp(name, "jul") == 0)
 		return SCENE_JULIA;
+	if (strcasecmp(name, "ball") == 0 ||
+		strcasecmp(name, "amigaball") == 0 ||
+		strcasecmp(name, "boing") == 0)
+		return SCENE_BALL;
 	if (strcasecmp(name, "starfield") == 0 ||
 		strcasecmp(name, "stars") == 0 ||
 		strcasecmp(name, "star") == 0)
@@ -456,9 +465,10 @@ void handleDevKeys(int currentScene)
 	if (keyJustPressed(KEY_4)) jumpToScene(SCENE_TUNNEL);
 	if (keyJustPressed(KEY_5)) jumpToScene(SCENE_TWISTER);
 	if (keyJustPressed(KEY_6)) jumpToScene(SCENE_JULIA);
-	if (keyJustPressed(KEY_7)) jumpToScene(SCENE_STARFIELD);
-	if (keyJustPressed(KEY_8)) jumpToScene(SCENE_CREDITS);
-	if (keyJustPressed(KEY_9)) jumpToScene(SCENE_GREETS);
+	if (keyJustPressed(KEY_7)) jumpToScene(SCENE_BALL);
+	if (keyJustPressed(KEY_8)) jumpToScene(SCENE_STARFIELD);
+	if (keyJustPressed(KEY_9)) jumpToScene(SCENE_CREDITS);
+	if (keyJustPressed(KEY_0)) jumpToScene(SCENE_GREETS);
 }
 
 
@@ -505,6 +515,10 @@ void drawScene(
 
 		case SCENE_JULIA:
 			drawJuliaEffect(animTime, sceneDuration);
+			break;
+
+		case SCENE_BALL:
+			drawBallEffect(animTime, sceneDuration);
 			break;
 
 		case SCENE_STARFIELD:
@@ -660,6 +674,7 @@ int main(int argc, char** argv) {
 	sceneLength[SCENE_TUNNEL] = 60 * 12;
 	sceneLength[SCENE_TWISTER] = 60 * 12;
 	sceneLength[SCENE_JULIA] = 60 * 14;
+	sceneLength[SCENE_BALL] = 60 * 10;
 	sceneLength[SCENE_STARFIELD] = 60 * 20;
 	sceneLength[SCENE_CREDITS] = 60 * 9;
 	sceneLength[SCENE_GREETS] = 60 * 9;
@@ -697,7 +712,7 @@ int main(int argc, char** argv) {
 			demoSeconds % 60
 		);
 	}
-	printf("Keys: 1-9 scene, R restart, Space pause, ESC quit\n");
+	printf("Keys: 1-9/0 scene, R restart, Space pause, ESC quit\n");
 
 	openGLcontext(1280, 720, true);
 

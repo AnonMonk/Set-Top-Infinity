@@ -3,6 +3,7 @@
 # =========================
 
 SRC = main.cpp \
+      EffectBall.cpp \
       EffectEndTitles.cpp \
       EffectLogo.cpp \
       EffectJulia.cpp \

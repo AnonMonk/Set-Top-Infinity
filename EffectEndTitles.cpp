@@ -73,7 +73,9 @@ namespace
 		"",
 		"TO TRACKER MUSICIANS",
 		"",
-		"TO OLD HARDWARE FANS"
+		"TO OLD HARDWARE FANS",
+		"",
+		"DONT DRINK AND CODE"
 	};
 
 	const int creditsLineCount =
