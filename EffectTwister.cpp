@@ -96,8 +96,8 @@ void drawTwisterEffect(float animTime)
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LEQUAL);
 
-	/* Weniger Segmente: weniger Quads + Kanten-Vertices */
-	const int segments = 80;
+	/* Hohe Laengsaufloesung fuer eine glatte Silhouette bei der Drehung. */
+	const int segments = 240;
 	/*
 	 * Laenger als die Bildschirmdiagonale: So reicht der Twister auch
 	 * waehrend der Drehung bei 4:3 und 16:9 immer ueber die Raender.
@@ -167,6 +167,8 @@ void drawTwisterEffect(float animTime)
 	/* Leuchtende Kanten lassen die Drehung klarer lesbar werden. */
 	glDisable(GL_DEPTH_TEST);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+	glEnable(GL_LINE_SMOOTH);
+	glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
 	glLineWidth(2.0f);
 
 	for (int corner = 0; corner < 4; corner++)
@@ -203,6 +205,7 @@ void drawTwisterEffect(float animTime)
 	glPopMatrix();
 
 	glLineWidth(1.0f);
+	glDisable(GL_LINE_SMOOTH);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glDisable(GL_BLEND);
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
