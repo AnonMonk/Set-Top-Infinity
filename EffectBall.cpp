@@ -106,30 +106,108 @@ namespace
 		state->rotation = fmodf(state->rotation, 360.0f);
 	}
 
+	void drawBackgroundGrid(
+		float wallLeft,
+		float wallRight,
+		float wallTop,
+		float floorLeft,
+		float floorRight,
+		float floorY,
+		int columns,
+		int wallRows,
+		int floorRows)
+	{
+		glBegin(GL_LINES);
+			for (int column = 0; column <= columns; column++)
+			{
+				float mix = (float)column / (float)columns;
+				float x = wallLeft + (wallRight - wallLeft) * mix;
+				glVertex3f(x, floorY, -350.0f);
+				glVertex3f(x, wallTop, -350.0f);
+			}
+			for (int row = 0; row <= wallRows; row++)
+			{
+				float mix = (float)row / (float)wallRows;
+				float y = floorY + (wallTop - floorY) * mix;
+				glVertex3f(wallLeft, y, -350.0f);
+				glVertex3f(wallRight, y, -350.0f);
+			}
+
+			/* Senkrechte Wandlinien laufen perspektivisch in den Boden weiter. */
+			for (int column = 0; column <= columns; column++)
+			{
+				float mix = (float)column / (float)columns;
+				float horizonX = wallLeft + (wallRight - wallLeft) * mix;
+				float floorX = floorLeft + (floorRight - floorLeft) * mix;
+				glVertex3f(horizonX, floorY, -300.0f);
+				glVertex3f(floorX, 0.0f, -300.0f);
+			}
+			for (int row = 0; row <= floorRows; row++)
+			{
+				float depth = (float)row / (float)floorRows;
+				/* Projektive Abstaende wie in der Boing-Ball-Vorlage. */
+				float perspective =
+					depth / (2.30f - 1.30f * depth);
+				float y = floorY * (1.0f - perspective);
+				float left =
+					wallLeft + (floorLeft - wallLeft) * perspective;
+				float right =
+					wallRight + (floorRight - wallRight) * perspective;
+				glVertex3f(left, y, -300.0f);
+				glVertex3f(right, y, -300.0f);
+			}
+		glEnd();
+	}
+
 	void drawBackground(float width, float height, float floorY)
 	{
+		const float wallLeft = width * 0.12f;
+		const float wallRight = width * 0.88f;
+		const float wallTop = height * 0.92f;
+		const float floorLeft = width * 0.025f;
+		const float floorRight = width * 0.975f;
+		const int columns = 15;
+		const int wallRows = 9;
+		const int floorRows = 5;
+
 		glShadeModel(GL_SMOOTH);
 		glBegin(GL_QUADS);
-			glColor3f(0.025f, 0.035f, 0.075f);
-			glVertex3f(0.0f, floorY, -500.0f);
-			glVertex3f(width, floorY, -500.0f);
-			glColor3f(0.002f, 0.004f, 0.014f);
+			/* Fast schwarze Rueckwand mit einem sehr leichten Gruenblau. */
+			glColor3f(0.010f, 0.026f, 0.022f);
+			glVertex3f(0.0f, 0.0f, -500.0f);
+			glVertex3f(width, 0.0f, -500.0f);
+			glColor3f(0.002f, 0.006f, 0.009f);
 			glVertex3f(width, height, -500.0f);
 			glVertex3f(0.0f, height, -500.0f);
 
-			glColor3f(0.12f, 0.125f, 0.15f);
+			/* Der Boden wird nach vorn nur leicht dunkler. */
+			glColor3f(0.004f, 0.014f, 0.012f);
 			glVertex3f(0.0f, 0.0f, -400.0f);
 			glVertex3f(width, 0.0f, -400.0f);
-			glColor3f(0.055f, 0.06f, 0.085f);
+			glColor3f(0.012f, 0.038f, 0.027f);
 			glVertex3f(width, floorY, -400.0f);
 			glVertex3f(0.0f, floorY, -400.0f);
 		glEnd();
 
-		glColor3f(0.28f, 0.30f, 0.38f);
-		glBegin(GL_LINES);
-			glVertex3f(0.0f, floorY, -350.0f);
-			glVertex3f(width, floorY, -350.0f);
-		glEnd();
+		/* Breiter Glow plus scharfer hellgruener Neon-Kern. */
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+		glLineWidth(6.0f);
+		glColor4f(0.05f, 1.0f, 0.28f, 0.18f);
+		drawBackgroundGrid(
+			wallLeft, wallRight, wallTop,
+			floorLeft, floorRight, floorY,
+			columns, wallRows, floorRows
+		);
+		glLineWidth(2.0f);
+		glColor4f(0.30f, 1.0f, 0.46f, 0.96f);
+		drawBackgroundGrid(
+			wallLeft, wallRight, wallTop,
+			floorLeft, floorRight, floorY,
+			columns, wallRows, floorRows
+		);
+		glDisable(GL_BLEND);
+		glLineWidth(1.0f);
 	}
 
 	void drawShadow(
