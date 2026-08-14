@@ -14,6 +14,7 @@
 #endif
 
 #include "vipgfx.h"
+#include "EffectStarfield.h"
 
 namespace
 {
@@ -40,6 +41,13 @@ namespace
 	{
 		value = clamp01(value);
 		return value * value * (3.0f - 2.0f * value);
+	}
+
+	float smoothTurn(float value)
+	{
+		value = clamp01(value);
+		return value * value * value
+			* (value * (value * 6.0f - 15.0f) + 10.0f);
 	}
 
 	void calculateBallState(
@@ -214,8 +222,12 @@ namespace
 		float x,
 		float y,
 		float radius,
-		float floorY)
+		float floorY,
+		float visibility)
 	{
+		if (visibility <= 0.0f)
+			return;
+
 		float distance = y - radius - floorY;
 		float heightFade = clamp01(1.0f - distance / (radius * 7.0f));
 		float radiusX = radius * (0.72f + (1.0f - heightFade) * 0.48f);
@@ -223,7 +235,12 @@ namespace
 
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glColor4f(0.0f, 0.0f, 0.0f, 0.12f + heightFade * 0.38f);
+		glColor4f(
+			0.0f,
+			0.0f,
+			0.0f,
+			(0.12f + heightFade * 0.38f) * visibility
+		);
 		glBegin(GL_TRIANGLE_FAN);
 			glVertex3f(x, floorY + 2.0f, -200.0f);
 			for (int segment = 0; segment <= 40; segment++)
@@ -348,9 +365,25 @@ void drawBallEffect(float animTime, float duration)
 	float height = (vscreen.height > 0) ? (float)vscreen.height : 720.0f;
 	float radius = ((width < height) ? width : height) * 0.11f;
 	float floorY = height * 0.11f;
+	const float morphDuration = 3.25f;
+	float morphStart = duration - morphDuration;
+	float transition = duration > morphDuration
+		? clamp01((animTime - morphStart) / morphDuration)
+		: 0.0f;
+	float moveMorph = smoothTurn(transition);
+	float surfaceMorph = smoothTurn((transition - 0.08f) / 0.92f);
+	float backgroundMorph = smoothTurn((transition - 0.18f) / 0.82f);
+	float shadowMorph = smoothTurn((transition - 0.05f) / 0.78f);
 	BallState state;
 
 	calculateBallState(animTime, width, height, radius, floorY, &state);
+
+	float objectX = state.x + (width * 0.5f - state.x) * moveMorph;
+	float objectY = state.y + (height * 0.5f - state.y) * moveMorph;
+	float starfieldStartPulse = 1.0f + 0.050f * sinf(0.70f);
+	float meteorRadius = height * 0.5f * 0.205f * starfieldStartPulse;
+	float objectRadius =
+		radius + (meteorRadius - radius) * surfaceMorph;
 
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -366,27 +399,40 @@ void drawBallEffect(float animTime, float duration)
 	glLoadIdentity();
 
 	drawBackground(width, height, floorY);
-	drawShadow(state.x, state.y, radius, floorY);
+	/* Das Gitter verschwindet, waehrend der Meteorit daraus hervorgeht. */
+	if (backgroundMorph > 0.0f)
+		drawFade(width, height, backgroundMorph);
+	drawShadow(
+		objectX,
+		objectY,
+		objectRadius,
+		floorY,
+		1.0f - shadowMorph
+	);
 
-	glEnable(GL_DEPTH_TEST);
-	glDepthFunc(GL_LEQUAL);
-	enableBallLight(width, height);
+	/* Dasselbe Mesh bleibt vom Ball bis zum ersten Starfield-Frame aktiv. */
 	glPushMatrix();
-		glTranslatef(state.x, state.y, 0.0f);
-		glRotatef(-16.0f, 1.0f, 0.0f, 0.0f);
-		/* Urspruengliche Drehachse, aber mit umgekehrtem Drehsinn. */
-		glRotatef(-state.rotation, 0.15f, 1.0f, 0.0f);
-		drawBoingSphere(radius);
+		glTranslatef(objectX, objectY, 0.0f);
+		glRotatef(
+			-16.0f * (1.0f - surfaceMorph),
+			1.0f, 0.0f, 0.0f
+		);
+		glRotatef(
+			-state.rotation * (1.0f - surfaceMorph),
+			0.15f, 1.0f, 0.0f
+		);
+		drawStarfieldMeteorMorph(
+			0.0f,
+			objectRadius,
+			surfaceMorph,
+			0.0f
+		);
 	glPopMatrix();
-	disableBallLight();
 	glDisable(GL_DEPTH_TEST);
 	glShadeModel(GL_SMOOTH);
 
 	float fadeIn = 1.0f - smoothStep(animTime / 0.55f);
-	float fadeOut = 0.0f;
-	if (duration > 0.0f)
-		fadeOut = smoothStep((animTime - (duration - 0.80f)) / 0.75f);
-	drawFade(width, height, (fadeIn > fadeOut) ? fadeIn : fadeOut);
+	drawFade(width, height, fadeIn);
 
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 }

@@ -117,8 +117,9 @@ namespace
 		*y = rotatedY * perspective * gatherScale;
 	}
 
-	const int kMorphLatitudeBands = 34;
-	const int kMorphLongitudeSegments = 52;
+	/* Vielfache von 8 x 16, damit jede Schachbrettkante auf dem Mesh liegt. */
+	const int kMorphLatitudeBands = 40;
+	const int kMorphLongitudeSegments = 64;
 
 	struct MorphVertex
 	{
@@ -246,7 +247,8 @@ namespace
 		float time,
 		float radius,
 		float horizontalScale,
-		float rotationAngle
+		float rotationAngle,
+		float surfaceMorph
 	)
 	{
 		int latitudeBand;
@@ -255,10 +257,14 @@ namespace
 		time *= 1.65f;
 		float cosRotation = cosf(rotationAngle);
 		float sinRotation = sinf(rotationAngle);
-		float verticalScale =
+		float meteorVerticalScale =
 			1.0f + 0.11f * sinf(time * 1.15f + 1.20f);
-		float shearX = 0.13f * sinf(time * 0.90f + 0.30f);
-		float shearY = 0.11f * sinf(time * 1.10f + 1.40f);
+		float verticalScale =
+			mixValue(1.0f, meteorVerticalScale, surfaceMorph);
+		float shearX =
+			0.13f * sinf(time * 0.90f + 0.30f) * surfaceMorph;
+		float shearY =
+			0.11f * sinf(time * 1.10f + 1.40f) * surfaceMorph;
 		float direction1X = 0.78f + 0.15f * sinf(time * 0.43f);
 		float direction1Y = 0.47f + 0.13f * sinf(time * 0.61f + 1.0f);
 		float direction1Z = 0.41f + 0.12f * sinf(time * 0.37f + 2.0f);
@@ -368,6 +374,7 @@ namespace
 
 				if (deformation < -0.54f) deformation = -0.54f;
 				if (deformation > 0.50f) deformation = 0.50f;
+				deformation *= surfaceMorph;
 
 				float localRadius = radius * (1.0f + deformation);
 				MorphVertex* vertex =
@@ -390,7 +397,8 @@ namespace
 					- furrow * 0.18f
 				);
 				vertex->morphAmount = clamp01(
-					fabsf(deformation) * 2.4f + furrow * 0.45f
+					(fabsf(deformation) * 2.4f + furrow * 0.45f)
+					* surfaceMorph
 				);
 				vertex->alpha = clamp01(
 					0.60f + vertex->flow * 0.24f
@@ -462,22 +470,56 @@ namespace
 		}
 	}
 
-	void drawMorphVertex(int latitudeBand, int longitudeSegment)
+	void drawMorphVertex(
+		int latitudeBand,
+		int longitudeSegment,
+		float surfaceMorph,
+		const GLfloat* modelView,
+		bool redPatch)
 	{
 		const MorphVertex* vertex =
 			&gMorphMesh[latitudeBand][longitudeSegment];
+		/*
+		 * Das Licht bleibt im Bildraum stehen. Zuvor wurden die Objekt-Normalen
+		 * direkt beleuchtet; dadurch drehte sich die dunkle Seite mit dem Ball
+		 * nach vorne. Nur den Rotationsanteil der Modelview-Matrix anwenden -
+		 * die Translation darf eine gerichtete Lichtquelle nicht beeinflussen.
+		 */
+		float normalX =
+			modelView[0] * vertex->nx
+			+ modelView[4] * vertex->ny
+			+ modelView[8] * vertex->nz;
+		float normalY =
+			modelView[1] * vertex->nx
+			+ modelView[5] * vertex->ny
+			+ modelView[9] * vertex->nz;
+		float normalZ =
+			modelView[2] * vertex->nx
+			+ modelView[6] * vertex->ny
+			+ modelView[10] * vertex->nz;
+		float normalLength = sqrtf(
+			normalX * normalX + normalY * normalY + normalZ * normalZ
+		);
+
+		if (normalLength > 0.000001f)
+		{
+			normalX /= normalLength;
+			normalY /= normalLength;
+			normalZ /= normalLength;
+		}
+
 		float diffuse = clamp01(
-			-vertex->nx * 0.30f
-			+ vertex->ny * 0.48f
-			+ vertex->nz * 0.82f
+			-normalX * 0.30f
+			+ normalY * 0.48f
+			+ normalZ * 0.82f
 		);
 		float light = 0.18f + diffuse * 0.82f;
 		float sheen = clamp01(
-			-vertex->nx * 0.34f
-			+ vertex->ny * 0.54f
-			+ vertex->nz * 0.77f
+			-normalX * 0.34f
+			+ normalY * 0.54f
+			+ normalZ * 0.77f
 		);
-		float rim = clamp01(1.0f - fabsf(vertex->nz));
+		float rim = clamp01(1.0f - fabsf(normalZ));
 		float shapeShade =
 			1.0f - vertex->morphAmount * (1.0f - diffuse) * 0.24f;
 
@@ -486,13 +528,31 @@ namespace
 		sheen *= sheen;
 		rim *= rim;
 
+		float meteorRed = clamp01(
+			(0.025f + (1.0f - vertex->flow) * 0.075f)
+			* light * shapeShade + sheen * 0.30f + rim * 0.015f
+		);
+		float meteorGreen = clamp01(
+			(0.20f + vertex->flow * 0.52f)
+			* light * shapeShade + sheen * 0.48f + rim * 0.075f
+		);
+		float meteorBlue = clamp01(
+			(0.065f + (1.0f - vertex->flow) * 0.23f)
+			* light * shapeShade + sheen * 0.28f + rim * 0.11f
+		);
+
+		float checkerLight = 0.30f + diffuse * 0.70f;
+		float checkerRed =
+			(redPatch ? 0.92f : 0.98f) * checkerLight + sheen * 0.18f;
+		float checkerGreen =
+			(redPatch ? 0.025f : 0.98f) * checkerLight + sheen * 0.18f;
+		float checkerBlue =
+			(redPatch ? 0.035f : 0.96f) * checkerLight + sheen * 0.18f;
+
 		glColor4f(
-			clamp01((0.025f + (1.0f - vertex->flow) * 0.075f)
-				* light * shapeShade + sheen * 0.30f + rim * 0.015f),
-			clamp01((0.20f + vertex->flow * 0.52f)
-				* light * shapeShade + sheen * 0.48f + rim * 0.075f),
-			clamp01((0.065f + (1.0f - vertex->flow) * 0.23f)
-				* light * shapeShade + sheen * 0.28f + rim * 0.11f),
+			mixValue(clamp01(checkerRed), meteorRed, surfaceMorph),
+			mixValue(clamp01(checkerGreen), meteorGreen, surfaceMorph),
+			mixValue(clamp01(checkerBlue), meteorBlue, surfaceMorph),
 			1.0f
 		);
 		glVertex3f(vertex->x, vertex->y, vertex->z);
@@ -526,11 +586,110 @@ namespace
 		glPopMatrix();
 	}
 
+	void drawMeteorMorphMesh(
+		float time,
+		float radius,
+		float rotationAngle,
+		float surfaceMorph
+	)
+	{
+		if (radius <= 0.0001f)
+			return;
+
+		float meteorHorizontalScale =
+			0.76f * (1.0f + 0.075f * sinf(time * 1.55f + 0.40f));
+		float horizontalScale =
+			mixValue(1.0f, meteorHorizontalScale, surfaceMorph);
+
+		buildMorphMesh(
+			time,
+			radius,
+			horizontalScale,
+			rotationAngle,
+			surfaceMorph
+		);
+
+		glDisable(GL_BLEND);
+		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LEQUAL);
+		glEnable(GL_CULL_FACE);
+		glCullFace(GL_BACK);
+		GLfloat modelView[16];
+		glGetFloatv(GL_MODELVIEW_MATRIX, modelView);
+
+		/*
+		 * Jedes kleine Viereck wird als zwei eigene Dreiecke ausgegeben. Alle
+		 * sechs Eckpunkte bekommen dieselbe Feldfarbe, aber weiterhin ihre
+		 * eigene Beleuchtung. So bleibt das Licht weich und Rot/Weiss treffen
+		 * ohne Farbinterpolation mit einer scharfen Kante aufeinander.
+		 */
+		glShadeModel(GL_SMOOTH);
+		glBegin(GL_TRIANGLES);
+		for (int latitudeBand = 0;
+			latitudeBand < kMorphLatitudeBands;
+			latitudeBand++)
+		{
+			int checkerLatitude =
+				latitudeBand * 8 / kMorphLatitudeBands;
+
+			for (int longitudeSegment = 0;
+				longitudeSegment < kMorphLongitudeSegments;
+				longitudeSegment++)
+			{
+				int checkerLongitude =
+					longitudeSegment * 16 / kMorphLongitudeSegments;
+				bool redPatch =
+					((checkerLatitude + checkerLongitude) & 1) != 0;
+
+				drawMorphVertex(
+					latitudeBand, longitudeSegment, surfaceMorph,
+					modelView, redPatch
+				);
+				drawMorphVertex(
+					latitudeBand + 1, longitudeSegment, surfaceMorph,
+					modelView, redPatch
+				);
+				drawMorphVertex(
+					latitudeBand + 1, longitudeSegment + 1, surfaceMorph,
+					modelView, redPatch
+				);
+
+				drawMorphVertex(
+					latitudeBand, longitudeSegment, surfaceMorph,
+					modelView, redPatch
+				);
+				drawMorphVertex(
+					latitudeBand + 1, longitudeSegment + 1, surfaceMorph,
+					modelView, redPatch
+				);
+				drawMorphVertex(
+					latitudeBand, longitudeSegment + 1, surfaceMorph,
+					modelView, redPatch
+				);
+			}
+		}
+		glEnd();
+
+		/* Helle Kernkante plus weicher gruener Schein um die Silhouette. */
+		glEnable(GL_BLEND);
+		glDepthMask(GL_FALSE);
+		glCullFace(GL_FRONT);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+		drawMorphGlowShell(1.075f, 0.12f * surfaceMorph);
+		drawMorphGlowShell(1.040f, 0.36f * surfaceMorph);
+		glDepthMask(GL_TRUE);
+		glCullFace(GL_BACK);
+
+		glDisable(GL_CULL_FACE);
+		glDisable(GL_DEPTH_TEST);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+	}
+
 	void drawLiquidSphere(
 		float time,
 		float gather,
-		float rotationAngle
-	)
+		float rotationAngle)
 	{
 		float collapseScale = 1.0f - gather;
 		if (collapseScale <= 0.003f)
@@ -541,48 +700,23 @@ namespace
 			+ 0.14f * sinf(time * 1.55f)
 			+ 0.050f * sinf(time * 3.10f + 0.70f);
 		float radius = 0.205f * pulse * collapseScale;
-		float horizontalScale =
-			0.76f * (1.0f + 0.075f * sinf(time * 1.55f + 0.40f));
-
-		buildMorphMesh(time, radius, horizontalScale, rotationAngle);
-
-		glDisable(GL_BLEND);
-		glEnable(GL_DEPTH_TEST);
-		glDepthFunc(GL_LEQUAL);
-		glEnable(GL_CULL_FACE);
-		glCullFace(GL_BACK);
-
-		for (int latitudeBand = 0;
-			latitudeBand < kMorphLatitudeBands;
-			latitudeBand++)
-		{
-			glBegin(GL_TRIANGLE_STRIP);
-			for (int longitudeSegment = 0;
-				longitudeSegment <= kMorphLongitudeSegments;
-				longitudeSegment++)
-			{
-				drawMorphVertex(latitudeBand, longitudeSegment);
-				drawMorphVertex(latitudeBand + 1, longitudeSegment);
-			}
-			glEnd();
-		}
-
-		/* Helle Kernkante plus weicher gruener Schein um die Silhouette. */
-		glEnable(GL_BLEND);
-		glDepthMask(GL_FALSE);
-		glCullFace(GL_FRONT);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-		drawMorphGlowShell(1.075f, 0.12f);
-		drawMorphGlowShell(1.040f, 0.36f);
-		glDepthMask(GL_TRUE);
-		glCullFace(GL_BACK);
-
-		glDisable(GL_CULL_FACE);
-		glDisable(GL_DEPTH_TEST);
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+		drawMeteorMorphMesh(time, radius, rotationAngle, 1.0f);
 	}
 
+}
+
+void drawStarfieldMeteorMorph(
+	float time,
+	float radius,
+	float morphAmount,
+	float rotationAngle)
+{
+	drawMeteorMorphMesh(
+		time,
+		radius,
+		rotationAngle,
+		clamp01(morphAmount)
+	);
 }
 
 void drawStarfieldEffect(float animTime, float duration)
@@ -614,7 +748,8 @@ void drawStarfieldEffect(float animTime, float duration)
 	float gatherStart = duration - 4.0f;
 	/* Erst im letzten Frame ganz zusammenfallen, ohne Schwarzblende. */
 	float gather = smoothStep((animTime - gatherStart) / 4.0f);
-	float fade = 1.0f;
+	/* Nach dem Ball-Morph weich aus der dunklen Uebergangsszene auftauchen. */
+	float fade = smoothTurn(animTime / 1.10f);
 
 	/* Weniger Sterne = spuerbar billiger (2x Loops: Lines + Points) */
 	const int starCount = 220;
