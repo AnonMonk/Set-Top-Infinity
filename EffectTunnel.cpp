@@ -11,30 +11,6 @@ namespace
 	{
 		return 0.5f + 0.5f * sinf(time * speed + phase);
 	}
-
-	float slowedTunnelTime(float time)
-	{
-		const float normalDuration = 6.0f;
-		const float slowDuration = 4.0f;
-
-		if (time <= normalDuration)
-			return time;
-
-		float progress = (time - normalDuration) / slowDuration;
-		if (progress < 0.0f) progress = 0.0f;
-		if (progress > 1.0f) progress = 1.0f;
-
-		/*
-		 * Integral einer weich von 1 auf 0 fallenden Geschwindigkeit.
-		 * Position und Beschleunigung bleiben an beiden Enden stetig.
-		 */
-		float progress2 = progress * progress;
-		float progress3 = progress2 * progress;
-		float progress4 = progress3 * progress;
-		return normalDuration
-			+ slowDuration
-			* (progress - progress3 + 0.5f * progress4);
-	}
 }
 
 void drawTunnelEffect(GLuint texture, float animTime)
@@ -46,7 +22,8 @@ void drawTunnelEffect(GLuint texture, float animTime)
 	int h = vscreen.height;
 
 	float aspect = (h > 0) ? (float)w / (float)h : 1.3333f;
-	float effectTime = slowedTunnelTime(animTime);
+	/* Der Tunnel bewegt sich mit voller Geschwindigkeit bis zum Szenenende. */
+	float effectTime = animTime;
 	float centerX = 0.18f * sinf(effectTime * 0.37f);
 	float centerY = 0.14f * cosf(effectTime * 0.51f);
 
