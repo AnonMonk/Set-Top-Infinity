@@ -7,7 +7,7 @@ namespace
 	void rotoTextureCoord(float x, float y, float animTime)
 	{
 		float effectTime = animTime * 1.25f;
-		float angle = effectTime * 0.60f;
+		float angle = effectTime * 1.20f;
 		float zoom = 0.78f + 0.15f * sinf(effectTime * 0.90f);
 
 		float cx = 0.5f + 0.14f * sinf(effectTime * 0.36f);
