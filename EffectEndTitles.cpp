@@ -11,6 +11,8 @@
 #include <GL/gl.h>
 #endif
 
+#include <cmath>
+
 #include "glTTF.h"
 #include "vipgfx.h"
 
@@ -19,11 +21,16 @@ namespace
 	const float kScreenW = 1280.0f;
 	const float kScreenH = 720.0f;
 	const float kFontSize = 48.0f;
+	const float kHeadingFontSize = 72.0f;
 	const float kLineHeight = 56.0f;
 	// Demo-Szenen CREDITS/GREETS sind je ~9s — Scroll so, dass der Block durchläuft
 	const float kSceneDuration = 9.0f;
+	const float kHorizontalWaveAmplitude = 70.0f;
+	const float kHorizontalWaveSpeed = 2.25f;
+	const float kHorizontalLinePhase = 0.72f;
 
 	aFont titlesFont = {};
+	aFont headingFont = {};
 
 	const char* creditsLines[] =
 	{
@@ -83,14 +90,14 @@ namespace
 	const int greetsLineCount =
 		(int)(sizeof(greetsLines) / sizeof(greetsLines[0]));
 
-	int centeredX(const char* text)
+	int centeredX(const char* text, aFont font)
 	{
 		if (text == 0 || text[0] == '\0')
 			return 0;
 
 		uint32_t textWidth = 0;
 		uint32_t textHeight = 0;
-		getTextSize(titlesFont, text, &textWidth, &textHeight);
+		getTextSize(font, text, &textWidth, &textHeight);
 		return (int)((kScreenW - (float)textWidth) * 0.5f);
 	}
 
@@ -128,7 +135,36 @@ namespace
 			if (y < -kLineHeight || y > kScreenH + kLineHeight)
 				continue;
 
-			printText(centeredX(line), (int)y, line, color, titlesFont);
+			/*
+			 * Jede Zeile hat ihre eigene Phase. So schlaengelt sich der gesamte
+			 * Endscroller zeilenweise von rechts nach links und wieder zurueck.
+			 */
+			const float phase =
+				animTime * kHorizontalWaveSpeed
+				+ (float)i * kHorizontalLinePhase;
+			const int waveX =
+				(int)(sinf(phase) * kHorizontalWaveAmplitude);
+
+			if (i == 0)
+			{
+				printText(
+					centeredX(line, headingFont) + waveX,
+					(int)y,
+					line,
+					color,
+					headingFont
+				);
+			}
+			else
+			{
+				printText(
+					centeredX(line, titlesFont) + waveX,
+					(int)y,
+					line,
+					color,
+					titlesFont
+				);
+			}
 		}
 	}
 }
@@ -136,6 +172,7 @@ namespace
 void loadFontEndTitles()
 {
 	loadFont("./assets/corbel.ttf", (int)kFontSize, &titlesFont);
+	loadFont("./assets/Corbel Bold.ttf", (int)kHeadingFontSize, &headingFont);
 }
 
 void drawCreditsEffect(float animTime)
