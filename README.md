@@ -114,8 +114,6 @@ Numbers `1`–`10` and e.g.:
 | Intro        | `assets/Introsound.wav` | `assets/Introsound.aiff`   | Win: `PlaySound`, macOS/Apple TV: prepared `NSSound`, Linux: `pw-play` |
 | Main music   | `assets/neon.wav`       | `assets/neon.aiff`         | starts after the logo scene; prepared on macOS/Apple TV |
 
-MP3 variants and `music/Neon Velocity no lyrics.mp3` are also in the repo — the demo itself plays the WAV/AIFF paths under `assets/`.
-
 On macOS and the Apple TV, the real first demo frame is presented before any
 audible sound starts. Intro and main music are loaded into `NSSound`, started
 silently once, paused, and reset to time zero. The demo then resumes the prepared
@@ -134,7 +132,8 @@ Audio can be disabled via `#define playaudio` in `main.cpp`.
 | `assets/Testbild.png` | Rotozoom texture |
 | `assets/bdl.png` | Tunnel texture |
 | `assets/corbel.ttf` | Font (credits / logo text) |
-| `assets/Introsound.*` / `neon.*` | Audio |
+| `assets/Introsound.wav` / `Introsound.aiff` | Intro audio (Windows / macOS and Linux) |
+| `assets/neon.wav` / `neon.aiff` | Main music (Windows / macOS and Linux) |
 
 ---
 
@@ -205,7 +204,7 @@ Set-Top-Infinity/
 ├── gettime.h
 ├── Makefile
 ├── assets/                  # textures, font, audio
-├── music/                   # extra music sources
+├── l                        # Linux build-and-run helper
 └── tools/                   # CPU logger (C++), ATV slow runner
 ```
 

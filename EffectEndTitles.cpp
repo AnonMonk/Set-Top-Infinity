@@ -104,7 +104,7 @@ namespace
 	// Grün im vipgfx-Farbformat (RGBA-Helfer)
 	unsigned int titlesGreen()
 	{
-		return RGBA(0, 255, 64, 255);
+		return RGBA((char)0, (char)255, (char)64, (char)255);
 	}
 
 	void drawScrollingLines(

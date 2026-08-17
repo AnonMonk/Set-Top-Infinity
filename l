@@ -1,8 +1,9 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-rm ./demo
+set -e
 
-make
+cd "$(dirname "$0")"
+make linux
 
-export LD_LIBRARY_PATH=./ 
-./demo
+export LD_LIBRARY_PATH="$(pwd)${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+exec ./demo "$@"

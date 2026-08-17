@@ -2,7 +2,7 @@
 #define INTRO_AUDIO_DATA_H
 
 /*
- * RMS-Huellkurve von Introsound.mp3, mit 60 Werten pro Sekunde.
+ * RMS-Huellkurve des Intro-Sounds, mit 60 Werten pro Sekunde.
  * Sie wird offline erzeugt, damit auf dem Apple TV kein MP3-Decoder fuer
  * die Visualisierung und keine FFT zur Laufzeit noetig ist.
  */

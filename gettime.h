@@ -18,7 +18,7 @@
 inline uint64_t GetMicroseconds()
 {
 #ifdef _WIN32
-    static LARGE_INTEGER frequency = { 0 };
+    static LARGE_INTEGER frequency;
     LARGE_INTEGER counter;
     if (frequency.QuadPart == 0)
         QueryPerformanceFrequency(&frequency);

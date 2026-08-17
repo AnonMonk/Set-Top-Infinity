@@ -1,13 +1,12 @@
 # Windows
 *.exe
 
+# Finder-/Archiv-Metadaten
+.DS_Store
+__MACOSX/
+
 # macOS / Linux / Apple TV 1 (Mac OS X 10.5.8) — make mac / make linux
 demo
-
-# Preview-Tools (Makefile clean)
-CreditsPreview
-GreetsPreview
-EndTitlesPreview
 
 # Build-Zwischenprodukte
 *.o
@@ -19,14 +18,4 @@ tools/log_demo_stats.exe
 
 # CPU-Logs (tools/log_demo_stats)
 tools/log/
-
-# Julia-Preview (Kompromiss-Testbilder)
-juliatest/
-
-# Arbeits-Tagebuch
-tools/TAGEBUCH_*.md
-
-# Precalc-Budget-Plan
-tools/julia_precalc_budget.md
-tools/mandelbrot_precalc_budget.md
 

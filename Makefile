@@ -64,7 +64,7 @@ tools:
 # Hilfs-Targets
 # =========================
 clean:
-	rm -f $(NAME) $(NAME).exe CreditsPreview GreetsPreview EndTitlesPreview \
+	rm -f $(NAME) $(NAME).exe \
 		tools/log_demo_stats tools/log_demo_stats.exe
 
 info:
