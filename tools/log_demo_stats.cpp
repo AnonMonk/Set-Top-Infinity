@@ -1,17 +1,3 @@
-/*
- * External CPU/RAM logger for the demo process.
- * Writes CSV under tools/log/ — does not modify demo code.
- *
- * Usage:
- *   ./tools/log_demo_stats <demo_pid> [interval_sec] [logfile]
- *   ./tools/log_demo_stats --find-demo
- *
- * CSV columns:
- *   time_iso, elapsed_s, demo_pid, demo_cpu_pct, demo_rss_mb,
- *   load_1m, load_5m, load_15m, ncpu,
- *   core0_pct, core1_pct, ... (system cores, not which core the demo uses)
- */
-
 #include <cerrno>
 #include <chrono>
 #include <cmath>
@@ -96,8 +82,6 @@ static fs::path defaultLogPath(const fs::path& toolsDir)
 	return logDir / (std::string("demo_cpu_") + stamp + ".csv");
 }
 
-/* --- process CPU% + RSS via ps (same approach as the old Python tool) --- */
-
 static bool readProcess(pid_t pid, double* outCpuPct, double* outRssMb)
 {
 	char cmd[128];
@@ -147,8 +131,6 @@ static pid_t findDemoPid()
 	return last;
 }
 
-/* --- per-core busy% from two tick samples --- */
-
 struct CoreTicks {
 	unsigned long long user = 0;
 	unsigned long long system = 0;
@@ -195,7 +177,6 @@ static bool readCoreTicks(std::vector<CoreTicks>& out)
 
 	char line[512];
 	while (std::fgets(line, sizeof(line), fp)) {
-		/* cpu0, cpu1, ... — skip aggregate "cpu " */
 		if (std::strncmp(line, "cpu", 3) != 0)
 			break;
 		if (line[3] == ' ' || line[3] == '\t')
@@ -205,7 +186,6 @@ static bool readCoreTicks(std::vector<CoreTicks>& out)
 
 		unsigned long long user = 0, nice = 0, system = 0, idle = 0;
 		unsigned long long iowait = 0, irq = 0, softirq = 0, steal = 0;
-		/* name user nice system idle iowait irq softirq steal ... */
 		if (std::sscanf(
 				line,
 				"%*s %llu %llu %llu %llu %llu %llu %llu %llu",
@@ -289,14 +269,12 @@ static std::string formatTimeIsoMs()
 #endif
 
 	char buf[64];
-	/* local time with offset, millisecond precision (ISO-like) */
 	char base[32];
 	std::strftime(base, sizeof(base), "%Y-%m-%dT%H:%M:%S", &local);
 
 #if defined(__APPLE__) || defined(__linux__)
 	char zone[16];
 	std::strftime(zone, sizeof(zone), "%z", &local);
-	/* %z is +0100 — insert colon for ISO: +01:00 */
 	char zoneFmt[8] = {0};
 	if (std::strlen(zone) == 5) {
 		zoneFmt[0] = zone[0];
@@ -395,7 +373,6 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
-	/* header */
 	out << "time_iso,elapsed_s,demo_pid,demo_cpu_pct,demo_rss_mb,"
 		<< "load_1m,load_5m,load_15m,ncpu";
 	for (int i = 0; i < ncpu; ++i)
@@ -450,12 +427,10 @@ int main(int argc, char** argv)
 			out << ",";
 			if (i < (int)cores.size())
 				out << cores[(size_t)i];
-			/* else empty field */
 		}
 		out << "\n";
 		out.flush();
 
-		/* reset defaultfloat-ish formatting for next iso via fixed each loop */
 		out.unsetf(std::ios::floatfield);
 
 		sleepSeconds(interval);

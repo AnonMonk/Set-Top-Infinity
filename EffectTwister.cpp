@@ -53,10 +53,7 @@ namespace
 	{
 		float depthLight = 0.38f + 0.62f * clamp01((z + 0.45f) / 0.90f);
 		float light = depthLight;
-		/*
-		 * Die Farbe haengt nur von der Hoehe ab. Dadurch haben alle vier
-		 * Flaechen an einer Kante exakt denselben Farbwert.
-		 */
+		// Height-only color keeps adjoining faces seamless.
 		float colorPhase = y * 1.8f - time * 0.35f;
 		float red = 0.18f + 0.82f * (0.5f + 0.5f * sinf(colorPhase));
 		float green =
@@ -96,12 +93,8 @@ void drawTwisterEffect(float animTime)
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LEQUAL);
 
-	/* Hohe Laengsaufloesung fuer eine glatte Silhouette bei der Drehung. */
 	const int segments = 240;
-	/*
-	 * Laenger als die Bildschirmdiagonale: So reicht der Twister auch
-	 * waehrend der Drehung bei 4:3 und 16:9 immer ueber die Raender.
-	 */
+	// Cover the viewport diagonal while the entire shape rotates.
 	const float halfLength = sqrtf(aspect * aspect + 1.0f) + 0.40f;
 	const float bottom = -halfLength;
 	const float top = halfLength;
@@ -127,14 +120,9 @@ void drawTwisterEffect(float animTime)
 		}
 	}
 
-	/*
-	 * Nach drei Sekunden dreht sich die komplette Form um die
-	 * Bildschirmmitte. Ein negativer Winkel ist hier im Uhrzeigersinn.
-	 */
 	glPushMatrix();
 	glRotatef(wholeRotationDegrees, 0.0f, 0.0f, 1.0f);
 
-	/* Vier gedrehte Flaechen bilden den klassischen Twister. */
 	glBegin(GL_QUADS);
 	for (int segment = 0; segment < segments; segment++)
 	{
@@ -164,7 +152,6 @@ void drawTwisterEffect(float animTime)
 	}
 	glEnd();
 
-	/* Leuchtende Kanten lassen die Drehung klarer lesbar werden. */
 	glDisable(GL_DEPTH_TEST);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 	glEnable(GL_LINE_SMOOTH);

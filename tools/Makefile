@@ -1,5 +1,3 @@
-# Standalone build for the external CPU/RAM logger.
-
 LOGGER_TARGET := log_demo_stats
 LOGGER_SOURCE := log_demo_stats.cpp
 WINDOWS_TARGET := run_atv_slow_win.exe

@@ -31,9 +31,7 @@ namespace
 		float bodyEndY;
 	};
 
-	// Muss zu openGLcontext(1280, 720) und glOrtho passen.
-	// vscreen.width/height ist im OpenGL-Pfad (bes. Windows) oft 0
-	// und darf NICHT für die 2D-Zentrierung verwendet werden.
+	// vscreen can report zero here, so layout uses the fixed context size.
 	const float kScreenW = 1280.0f;
 	const float kScreenH = 720.0f;
 
@@ -322,7 +320,6 @@ namespace
 
 	float logoScale()
 	{
-		// feste Demo-Auflösung 1280x720 → volle Logo-Größe
 		return 2.0f;
 	}
 }
@@ -357,24 +354,18 @@ void drawLogoIntroEffect(
 
 	end2D();
 
-	// Intro-Text: 1.5s von unten (außerhalb) nach oben, soft stop unter dem Fisch.
-	// Transition (SCENE_LOGO_WAVE) zeichnet diesen Text bewusst nicht.
 	const char* title = "Very Important Pictures";
 	const float flyDuration = 1.5f;
 	const float fontSize = 64.0f;
-	// Fisch-Unterkante ~ centerY + headH/2 = 360 + 94*scale/2 ... scale 2 → ~454
 	const float yRest = 510.0f;
-	const float yStart = kScreenH + fontSize + 40.0f; // komplett unter dem Bildrand
+	const float yStart = kScreenH + fontSize + 40.0f;
 
-	// Keine measureText-API in glTTF → Breite grob schätzen, horizontal zentrieren
-	// 0.50 war zu breit geschätzt → Text saß zu weit links
 	const float estimatedTextW = 23.0f * fontSize * 0.38f;
 	const int textX = (int)((kScreenW - estimatedTextW) * 0.5f);
 
 	float progress = (flyDuration > 0.0f) ? (animTime / flyDuration) : 1.0f;
 	if (progress < 0.0f) progress = 0.0f;
 	if (progress > 1.0f) progress = 1.0f;
-	// smoothstep: weicher Anflug / soft stop
 	float eased = progress * progress * (3.0f - 2.0f * progress);
 	float textY = yStart + (yRest - yStart) * eased;
 

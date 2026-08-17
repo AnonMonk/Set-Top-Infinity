@@ -1,14 +1,4 @@
 #!/usr/bin/env bash
-# Startet die Demo abgebremst (ATV1-Näherung). Aendert den Demo-Code nicht.
-# Schreibt optional CPU-Log nach tools/log/demo_cpu_*.csv (Standard: an).
-#
-# Usage:
-#   ./tools/run_atv_slow.sh              # ~10 % CPU + Log
-#   ./tools/run_atv_slow.sh 5            # ~5 %
-#   ./tools/run_atv_slow.sh 15 julia
-#   NO_CPU_LOG=1 ./tools/run_atv_slow.sh # ohne Log
-#
-# Optional (praeziseres Limit):  brew install cpulimit
 
 set -euo pipefail
 
@@ -52,13 +42,11 @@ mkdir -p "$LOG_DIR"
 LOG_STAMP="$(date +%Y%m%d_%H%M%S)"
 LOG_FILE="${CPU_LOG_FILE:-$LOG_DIR/demo_cpu_${LOG_STAMP}.csv}"
 
-# Fractional sleep without Python (macOS / Linux sleep accepts floats)
 sleep_ms() {
 	local ms="$1"
 	if (( ms <= 0 )); then
 		return 0
 	fi
-	# printf %.3f → seconds
 	sleep "$(awk -v ms="$ms" 'BEGIN { printf "%.3f", ms / 1000 }')"
 }
 
@@ -72,7 +60,6 @@ fi
 echo "Beenden: ESC in der Demo oder Ctrl+C hier"
 echo
 
-# Demo starten
 "$DEMO_BIN" "$@" &
 DEMO_PID=$!
 
@@ -92,18 +79,15 @@ cleanup() {
 		kill "$DEMO_PID" 2>/dev/null || true
 		wait "$DEMO_PID" 2>/dev/null || true
 	fi
-	# verwaiste Musik beenden (macOS)
 	killall afplay 2>/dev/null || true
 }
 trap cleanup EXIT INT TERM
 
-# Logger starten (extern, alle 0.5 s)
 if [[ "$DO_LOG" != "1" ]]; then
 	"$LOGGER_BIN" "$DEMO_PID" 0.5 "$LOG_FILE" &
 	LOGGER_PID=$!
 fi
 
-# --- Variante 1: cpulimit (falls installiert) ---
 if command -v cpulimit >/dev/null 2>&1; then
 	echo "Limiter: cpulimit -l $LIMIT_PERCENT"
 	cpulimit -l "$LIMIT_PERCENT" -p "$DEMO_PID" &
@@ -118,7 +102,6 @@ if command -v cpulimit >/dev/null 2>&1; then
 	exit 0
 fi
 
-# --- Variante 2: duty-cycle mit SIGSTOP/SIGCONT ---
 echo "Limiter: eingebauter Duty-Cycle (cpulimit nicht gefunden)"
 echo "Tipp fuer praeziseres Limit:  brew install cpulimit"
 

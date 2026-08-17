@@ -41,12 +41,11 @@ bool MacSound::prepare(const char* filename)
 	}
 
 	sound = loadedSound;
-	/* Die Demo-Musik darf nach dem Dateiende niemals neu beginnen. */
 	[loadedSound setLoops:NO];
 	[loadedSound setVolume:0.0f];
 	BOOL started = [loadedSound play];
 
-	/* Maximal zwei Sekunden auf den tatsaechlichen Audio-Start warten. */
+	// Bound startup wait to two seconds.
 	int attempts = 0;
 	while (started && [loadedSound currentTime] < 0.01 && attempts < 400)
 	{

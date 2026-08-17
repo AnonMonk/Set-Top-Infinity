@@ -14,7 +14,6 @@
 
 void drawStarfieldEffect(float animTime, float duration);
 
-/* Gemeinsames Mesh fuer den Ball-zu-Meteorit-Uebergang. */
 void drawStarfieldMeteorMorph(
 	float time,
 	float radius,

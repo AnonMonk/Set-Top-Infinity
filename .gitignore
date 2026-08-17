@@ -1,21 +1,15 @@
-# Windows
 *.exe
 
-# Finder-/Archiv-Metadaten
 .DS_Store
 __MACOSX/
 
-# macOS / Linux / Apple TV 1 (Mac OS X 10.5.8) — make mac / make linux
 demo
 
-# Build-Zwischenprodukte
 *.o
 *.dSYM/
 
-# External CPU logger binary
 tools/log_demo_stats
 tools/log_demo_stats.exe
 
-# CPU-Logs (tools/log_demo_stats)
 tools/log/
 

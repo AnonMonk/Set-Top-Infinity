@@ -64,11 +64,7 @@ namespace
 		state->vy = 0.0f;
 		state->rotation = 0.0f;
 
-		/*
-		 * Der Zustand wird aus der lokalen Szenenzeit rekonstruiert. Damit
-		 * funktionieren Pause, Seek, Restart und Solo-Loop ohne eine alte
-		 * globale G3-Timer-/Update-Schleife.
-		 */
+		// Rebuild from scene time so seek, restart, and solo loops stay deterministic.
 		const float gravity = -height * 1.36f;
 		const float restitution = 0.91f;
 		const float minimumBounceSpeed = height * 0.67f;
@@ -106,7 +102,6 @@ namespace
 				state->vx = -state->vx;
 			}
 
-			/* Rollrichtung folgt der horizontalen Bewegung. */
 			state->rotation += state->vx / radius * dt * 180.0f / kPi;
 			remaining -= dt;
 		}
@@ -141,7 +136,6 @@ namespace
 				glVertex3f(wallRight, y, -350.0f);
 			}
 
-			/* Senkrechte Wandlinien laufen perspektivisch in den Boden weiter. */
 			for (int column = 0; column <= columns; column++)
 			{
 				float mix = (float)column / (float)columns;
@@ -153,7 +147,6 @@ namespace
 			for (int row = 0; row <= floorRows; row++)
 			{
 				float depth = (float)row / (float)floorRows;
-				/* Projektive Abstaende wie in der Boing-Ball-Vorlage. */
 				float perspective =
 					depth / (2.30f - 1.30f * depth);
 				float y = floorY * (1.0f - perspective);
@@ -180,7 +173,6 @@ namespace
 
 		glShadeModel(GL_SMOOTH);
 		glBegin(GL_QUADS);
-			/* Fast schwarze Rueckwand mit einem sehr leichten Gruenblau. */
 			glColor3f(0.010f, 0.026f, 0.022f);
 			glVertex3f(0.0f, 0.0f, -500.0f);
 			glVertex3f(width, 0.0f, -500.0f);
@@ -188,7 +180,6 @@ namespace
 			glVertex3f(width, height, -500.0f);
 			glVertex3f(0.0f, height, -500.0f);
 
-			/* Der Boden wird nach vorn nur leicht dunkler. */
 			glColor3f(0.004f, 0.014f, 0.012f);
 			glVertex3f(0.0f, 0.0f, -400.0f);
 			glVertex3f(width, 0.0f, -400.0f);
@@ -197,7 +188,6 @@ namespace
 			glVertex3f(0.0f, floorY, -400.0f);
 		glEnd();
 
-		/* Breiter Glow plus scharfer hellgruener Neon-Kern. */
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 		glLineWidth(6.0f);
@@ -314,7 +304,6 @@ void drawBallEffect(float animTime, float duration)
 	glLoadIdentity();
 
 	drawBackground(width, height, floorY);
-	/* Das Gitter verschwindet, waehrend der Meteorit daraus hervorgeht. */
 	if (backgroundMorph > 0.0f)
 		drawFade(width, height, backgroundMorph);
 	drawShadow(
@@ -325,7 +314,6 @@ void drawBallEffect(float animTime, float duration)
 		1.0f - shadowMorph
 	);
 
-	/* Dasselbe Mesh bleibt vom Ball bis zum ersten Starfield-Frame aktiv. */
 	glPushMatrix();
 		glTranslatef(objectX, objectY, 0.0f);
 		glRotatef(

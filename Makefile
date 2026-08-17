@@ -1,7 +1,3 @@
-# =========================
-# Projekt
-# =========================
-
 SRC = main.cpp \
       EffectBall.cpp \
       EffectEndTitles.cpp \
@@ -23,7 +19,6 @@ X86_TARGET := $(strip $(foreach arch,$(X86_MARKERS),$(findstring $(arch),$(TARGE
 SSE2_FLAGS := $(if $(X86_TARGET),-msse2,)
 CXXFLAGS_BASE = -O3 $(SSE2_FLAGS)
 
-# Default-Target: Hinweis, welches OS-Target man bauen soll
 .PHONY: all mac linux win clean info tools
 
 all:
@@ -33,36 +28,21 @@ all:
 	@echo "  make win"
 	@echo "  make tools   # external CPU logger (tools/log_demo_stats)"
 
-# =========================
-# macOS
-# =========================
 mac:
 	$(CXX) $(SRC) $(MAC_SRC) -o $(NAME) $(CXXFLAGS_BASE) -w -L$(LIB_DIR) \
 		-framework OpenGL -framework Cocoa -lvipgfx -lglTTF
 
-# =========================
-# Linux
-# =========================
 linux:
 	$(CXX) $(SRC) -o $(NAME) $(CXXFLAGS_BASE) -Wall -L$(LIB_DIR) \
 		-Wl,-rpath,'$$ORIGIN' -lGL -lvipgfx -lglTTF
 
-# =========================
-# Windows (MinGW)
-# =========================
 win:
 	$(CXX) $(SRC) -o $(NAME).exe $(CXXFLAGS_BASE) -w -L$(LIB_DIR) \
 		-lopengl32 -lvipgfx -lglTTF -lwinmm
 
-# =========================
-# Tools (external, not linked into demo)
-# =========================
 tools:
 	$(MAKE) -C tools all
 
-# =========================
-# Hilfs-Targets
-# =========================
 clean:
 	rm -f $(NAME) $(NAME).exe \
 		tools/log_demo_stats tools/log_demo_stats.exe

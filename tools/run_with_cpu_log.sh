@@ -1,9 +1,4 @@
 #!/usr/bin/env bash
-# Startet die Demo OHNE CPU-Bremse, mit CPU-Log unter tools/log/.
-#
-# Usage:
-#   ./tools/run_with_cpu_log.sh
-#   ./tools/run_with_cpu_log.sh julia
 
 set -euo pipefail
 

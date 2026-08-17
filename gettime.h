@@ -11,10 +11,7 @@
 #include <sys/time.h>
 #endif
 
-/*
- * Monotonic timer without C++11.  The first-generation Apple TV ships with
- * an old GCC/libstdc++, so std::chrono is not available there.
- */
+// The first-generation Apple TV compiler has no std::chrono.
 inline uint64_t GetMicroseconds()
 {
 #ifdef _WIN32

@@ -26,6 +26,9 @@
 	#endif
 #endif
 
+#ifndef GL_BGRA
+#define GL_BGRA 0x80E1
+#endif
 
 #include "vipgfx.h"
 #include "glTTF.h"
@@ -80,16 +83,13 @@ static const char* sceneNames[SCENE_COUNT] = {
 
 int sceneLength[SCENE_COUNT];
 
-/* Virtuelle Demo-Uhr (pausier- und springbar) */
 int64_t demoClockMs = 0;
 uint64_t lastWallMs = 0;
 bool paused = false;
 
-/* Solo-Mode: nur eine Szene, geloopt (CLI oder per Taste umgeschaltet) */
 bool soloMode = false;
 int soloScene = 0;
 
-/* Edge-Detection fuer Tasten */
 bool prevKey[256];
 
 GLuint rotoTexture = 0;
@@ -158,7 +158,7 @@ string getExecutableDir(char** argv) {
 
 void stopSound(pid_t* process) {
 #ifdef _WIN32
-	/* PlaySound kann nur einen Sound — stoppt alles */
+	// PlaySound controls one global channel, so the process handle is irrelevant.
 	(void)process;
 	PlaySoundA(NULL, NULL, 0);
 #else
@@ -194,7 +194,6 @@ if (!playaudio) {
 }
 
 #ifdef _WIN32
-	/* WAV asynchron abspielen — kein Preload, niedrige Latenz */
 	if (!PlaySoundA(filename.c_str(), NULL, SND_ASYNC | SND_FILENAME | SND_NODEFAULT)) {
 		printf("PlaySound failed: %s\n", filename.c_str());
 		return false;
@@ -259,12 +258,11 @@ GLuint loadTextureRGBA(const string& filename, bool repeatMode) {
 		pic.width,
 		pic.height,
 		0,
-		0x80E1, //GL_BGRA
+		GL_BGRA,
 		GL_UNSIGNED_BYTE,
 		pic.data
 	);
 
-	/* glTexImage2D kopiert die Pixel; der CPU-Puffer wird danach nicht gebraucht. */
 	FreeImage(pic);
 
 	return texture;
@@ -371,7 +369,6 @@ int parseSceneName(const char* name)
 	if (name == NULL || name[0] == '\0')
 		return -1;
 
-	/* Szenennummern 1-10; 0 bleibt als Alias fuer die erste Szene erhalten. */
 	if (strcmp(name, "10") == 0)
 		return SCENE_GREETS;
 	if (name[0] >= '1' && name[0] <= '9' && name[1] == '\0')
@@ -411,7 +408,6 @@ int parseSceneName(const char* name)
 		strcasecmp(name, "greetz") == 0)
 		return SCENE_GREETS;
 
-	/* exakter Listenname */
 	for (n = 0; n < SCENE_COUNT; n++) {
 		if (strcasecmp(name, sceneNames[n]) == 0)
 			return n;
@@ -583,7 +579,6 @@ bool update() {
 		animTime = (float)localFrame / (float)DEMO_FPS;
 		sceneDuration = (float)len / (float)DEMO_FPS;
 
-		/* Solo: alle Effekt-Zeiten lokal ab 0 */
 		rotoAnimTime = animTime;
 		tunnelAnimTime = animTime;
 		creditsAnimTime = animTime;
@@ -682,7 +677,6 @@ int main(int argc, char** argv) {
 	for (i = 0; i < 256; i++)
 		prevKey[i] = false;
 
-	/* CLI: demo tunnel  /  demo 4  /  demo --help */
 	if (argc >= 2) {
 		if (strcasecmp(argv[1], "-h") == 0 ||
 			strcasecmp(argv[1], "--help") == 0 ||
@@ -722,7 +716,6 @@ int main(int argc, char** argv) {
 	loadFontLogo();
 	loadFontEndTitles();
 
-	/* Erst das echte erste Demo-Frame sichtbar machen, noch ohne Ton. */
 	int startupScene = soloMode ? soloScene : SCENE_LOGO;
 	float startupDuration =
 		(float)sceneLength[startupScene] / (float)DEMO_FPS;
@@ -731,10 +724,7 @@ int main(int argc, char** argv) {
 	UpdateGFXsystem();
 
 #ifdef __APPLE__
-	/*
-	 * Beide Sounds stumm anlaufen lassen, pausieren und auf Position 0 setzen.
-	 * Das sichtbare erste Demo-Frame bleibt waehrenddessen auf dem Fernseher.
-	 */
+	// Prime NSSound after presenting the first frame to avoid startup audio lag.
 	if (playaudio) {
 		introSoundReady = preparedIntroSound.prepare(
 			(executableDirectory + "/assets/Introsound.aiff").c_str()
@@ -749,7 +739,6 @@ int main(int argc, char** argv) {
 	}
 #endif
 
-	/* Windows: PlaySound | Apple: NSSound | Linux: pw-play */
 #ifdef _WIN32
 	if (!playSound(executableDirectory + "/assets/Introsound.wav", &introAudioProcess))
 		printf("Warnung: Introsound.wav konnte nicht gestartet werden.\n");
@@ -768,7 +757,7 @@ int main(int argc, char** argv) {
 	demoClockMs = 0;
 
 #ifdef _WIN32
-	/* sleep_until braucht unter Windows eine feinere Aufloesung als 15,6 ms. */
+	// Raise Windows timer resolution for 60 FPS frame pacing.
 	timeBeginPeriod(1);
 	HANDLE frameTimer = CreateWaitableTimerExW(
 		NULL,
@@ -811,7 +800,7 @@ int main(int argc, char** argv) {
 			usleep((unsigned int)remainingUs);
 		#endif
 		} else {
-			/* Keine Catch-up-Frames nach CPU-Spikes oder externer Drosselung. */
+			// Drop missed frame deadlines instead of accumulating catch-up frames.
 			nextFrameTimeUs = frameEndUs;
 		}
 	}

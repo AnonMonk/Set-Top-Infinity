@@ -1,11 +1,6 @@
 #ifndef INTRO_AUDIO_DATA_H
 #define INTRO_AUDIO_DATA_H
 
-/*
- * RMS-Huellkurve des Intro-Sounds, mit 60 Werten pro Sekunde.
- * Sie wird offline erzeugt, damit auf dem Apple TV kein MP3-Decoder fuer
- * die Visualisierung und keine FFT zur Laufzeit noetig ist.
- */
 static const float INTRO_ENVELOPE_HZ = 60.0f;
 static const float INTRO_DURATION_SECONDS = 2.481633f;
 static const float introEnvelope[] =

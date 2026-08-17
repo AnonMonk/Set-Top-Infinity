@@ -22,7 +22,6 @@ void drawTunnelEffect(GLuint texture, float animTime)
 	int h = vscreen.height;
 
 	float aspect = (h > 0) ? (float)w / (float)h : 1.3333f;
-	/* Der Tunnel bewegt sich mit voller Geschwindigkeit bis zum Szenenende. */
 	float effectTime = animTime;
 	float centerX = 0.18f * sinf(effectTime * 0.37f);
 	float centerY = 0.14f * cosf(effectTime * 0.51f);
@@ -40,7 +39,6 @@ void drawTunnelEffect(GLuint texture, float animTime)
 	glEnable(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, texture);
 
-	/* Leichter fuer ATV/schwache CPU: weniger Rings/Slices, Look bleibt nah dran */
 	const int rings = 48;
 	const int slices = 40;
 	const float nearDepth = 0.55f;

@@ -33,7 +33,7 @@ namespace
 	const float kZoomDepth = 16.0f;
 	const float kJuliaCRe = -0.8f;
 	const float kJuliaCIm = 0.156f;
-	/* Tiefe-20-Urbild eines repulsiven Fixpunkts: liegt exakt auf der Julia. */
+	// This preimage stays on the Julia boundary throughout the deep zoom.
 	const float kZoomTargetX = -0.2059743933f;
 	const float kZoomTargetY = -0.0177253464f;
 	const float kStartSpan = 3.0f;
@@ -122,6 +122,7 @@ namespace
 		bool escaped;
 	};
 
+#if !defined(__SSE__)
 	PixelResult iterateScalar(float zx, float zy, int maxIter)
 	{
 		PixelResult result = { 0, 0.0f, false };
@@ -143,6 +144,7 @@ namespace
 		}
 		return result;
 	}
+#endif
 
 	void iterateFour(
 		float firstX,
@@ -153,7 +155,6 @@ namespace
 		PixelResult* results
 	)
 	{
-/*
 #if defined(__SSE__)
 		__m128 zx = _mm_set_ps(
 			firstX + 3.0f * stepX,
@@ -206,10 +207,9 @@ namespace
 				? radii[lane] : 0.0f;
 		}
 #else
-*/
 		for (int lane = 0; lane < count; ++lane)
 			results[lane] = iterateScalar(firstX + (float)lane * stepX, y, maxIter);
-//#endif
+#endif
 	}
 
 	uint16_t colorFromResult(const PixelResult& result)

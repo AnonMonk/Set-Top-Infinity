@@ -23,7 +23,6 @@ namespace
 	const float kFontSize = 48.0f;
 	const float kHeadingFontSize = 72.0f;
 	const float kLineHeight = 56.0f;
-	// Demo-Szenen CREDITS/GREETS sind je ~9s — Scroll so, dass der Block durchläuft
 	const float kSceneDuration = 9.0f;
 	const float kHorizontalWaveAmplitude = 70.0f;
 	const float kHorizontalWaveSpeed = 2.25f;
@@ -101,7 +100,6 @@ namespace
 		return (int)((kScreenW - (float)textWidth) * 0.5f);
 	}
 
-	// Grün im vipgfx-Farbformat (RGBA-Helfer)
 	unsigned int titlesGreen()
 	{
 		return RGBA((char)0, (char)255, (char)64, (char)255);
@@ -117,7 +115,6 @@ namespace
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		const float totalHeight = (float)lineCount * kLineHeight;
-		// Start: erste Zeile unter dem Bild; Ende: letzter Text über dem oberen Rand
 		const float travel = kScreenH + totalHeight + kFontSize;
 		const float speed = travel / kSceneDuration;
 		const float scroll = animTime * speed;
@@ -135,10 +132,6 @@ namespace
 			if (y < -kLineHeight || y > kScreenH + kLineHeight)
 				continue;
 
-			/*
-			 * Jede Zeile hat ihre eigene Phase. So schlaengelt sich der gesamte
-			 * Endscroller zeilenweise von rechts nach links und wieder zurueck.
-			 */
 			const float phase =
 				animTime * kHorizontalWaveSpeed
 				+ (float)i * kHorizontalLinePhase;

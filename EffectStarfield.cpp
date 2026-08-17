@@ -117,7 +117,7 @@ namespace
 		*y = rotatedY * perspective * gatherScale;
 	}
 
-	/* Vielfache von 8 x 16, damit jede Schachbrettkante auf dem Mesh liegt. */
+	// Multiples of 8x16 keep every checker edge on a mesh boundary.
 	const int kMorphLatitudeBands = 40;
 	const int kMorphLongitudeSegments = 64;
 
@@ -253,7 +253,6 @@ namespace
 	{
 		int latitudeBand;
 		int longitudeSegment;
-		/* Interne Formbewegung bewusst schneller als die Demo-Uhr. */
 		time *= 1.65f;
 		float cosRotation = cosf(rotationAngle);
 		float sinRotation = sinf(rotationAngle);
@@ -296,14 +295,12 @@ namespace
 		normalizeDirection(&direction4X, &direction4Y, &direction4Z);
 		normalizeDirection(&direction5X, &direction5Y, &direction5Z);
 		normalizeDirection(&direction6X, &direction6Y, &direction6Z);
-		/* Sin/Cos-Paar: konstante Morphbewegung ohne Ruhepunkt. */
 		float noiseAngle = time * 0.74f;
 		float firstNoiseWeight = cosf(noiseAngle);
 		float secondNoiseWeight = sinf(noiseAngle);
 		float thirdNoiseWeight =
 			0.45f * sinf(time * 1.13f + 0.80f);
 
-		/* Wandernde lokale Morphzentren statt radialer Oberflaechenmuster. */
 		for (latitudeBand = 0;
 			latitudeBand <= kMorphLatitudeBands;
 			latitudeBand++)
@@ -407,10 +404,7 @@ namespace
 			}
 		}
 
-		/*
-		 * Normalen aus der wirklich verformten Flaeche berechnen. Erst dadurch
-		 * werden die morphenden Ausbuchtungen als Licht und Schatten sichtbar.
-		 */
+		// Derive normals from the deformed mesh, not the source sphere.
 		for (latitudeBand = 0;
 			latitudeBand <= kMorphLatitudeBands;
 			latitudeBand++)
@@ -479,12 +473,7 @@ namespace
 	{
 		const MorphVertex* vertex =
 			&gMorphMesh[latitudeBand][longitudeSegment];
-		/*
-		 * Das Licht bleibt im Bildraum stehen. Zuvor wurden die Objekt-Normalen
-		 * direkt beleuchtet; dadurch drehte sich die dunkle Seite mit dem Ball
-		 * nach vorne. Nur den Rotationsanteil der Modelview-Matrix anwenden -
-		 * die Translation darf eine gerichtete Lichtquelle nicht beeinflussen.
-		 */
+		// Transform normals without translation so directional light stays in view space.
 		float normalX =
 			modelView[0] * vertex->nx
 			+ modelView[4] * vertex->ny
@@ -617,12 +606,7 @@ namespace
 		GLfloat modelView[16];
 		glGetFloatv(GL_MODELVIEW_MATRIX, modelView);
 
-		/*
-		 * Jedes kleine Viereck wird als zwei eigene Dreiecke ausgegeben. Alle
-		 * sechs Eckpunkte bekommen dieselbe Feldfarbe, aber weiterhin ihre
-		 * eigene Beleuchtung. So bleibt das Licht weich und Rot/Weiss treffen
-		 * ohne Farbinterpolation mit einer scharfen Kante aufeinander.
-		 */
+		// Per-triangle field color preserves hard checker edges with smooth lighting.
 		glShadeModel(GL_SMOOTH);
 		glBegin(GL_TRIANGLES);
 		for (int latitudeBand = 0;
@@ -670,7 +654,6 @@ namespace
 		}
 		glEnd();
 
-		/* Helle Kernkante plus weicher gruener Schein um die Silhouette. */
 		glEnable(GL_BLEND);
 		glDepthMask(GL_FALSE);
 		glCullFace(GL_FRONT);
@@ -746,16 +729,12 @@ void drawStarfieldEffect(float animTime, float duration)
 	float previousSpiral =
 		smoothStep((animTime - 0.045f - 2.0f) / 1.2f);
 	float gatherStart = duration - 4.0f;
-	/* Erst im letzten Frame ganz zusammenfallen, ohne Schwarzblende. */
 	float gather = smoothStep((animTime - gatherStart) / 4.0f);
-	/* Nach dem Ball-Morph weich aus der dunklen Uebergangsszene auftauchen. */
 	float fade = smoothTurn(animTime / 1.10f);
 
-	/* Weniger Sterne = spuerbar billiger (2x Loops: Lines + Points) */
 	const int starCount = 220;
 	const float speed = 0.27f;
 
-	/* Leuchtspuren zeigen Flugrichtung und zunehmenden Wirbel. */
 	glLineWidth(4.5f);
 	glBegin(GL_LINES);
 	for (int i = 0; i < starCount; i++)
@@ -767,7 +746,7 @@ void drawStarfieldEffect(float animTime, float duration)
 			wrappedDepth(baseDepth, animTime * speed - 0.012f);
 		float x, y, previousX, previousY;
 
-		/* Beim Zuruecksetzen in die Ferne keine Bildschirmdiagonale ziehen. */
+		// Suppress a trail across the depth wrap.
 		if (previousDepth < depth)
 			previousDepth = depth;
 
@@ -800,7 +779,6 @@ void drawStarfieldEffect(float animTime, float duration)
 	}
 	glEnd();
 
-	/* Helle Koepfe auf den Spuren. */
 	glPointSize(3.5f);
 	glBegin(GL_POINTS);
 	for (int i = 0; i < starCount; i++)
