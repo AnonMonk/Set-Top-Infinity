@@ -14,6 +14,8 @@
 
 void drawStarfieldEffect(float animTime, float duration);
 
+void prepareStarfieldEffect();
+
 void drawStarfieldMeteorMorph(
 	float time,
 	float radius,

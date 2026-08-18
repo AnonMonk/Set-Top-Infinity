@@ -715,6 +715,7 @@ int main(int argc, char** argv) {
 	loadDemoTextures(executableDirectory);
 	loadFontLogo();
 	loadFontEndTitles();
+	prepareStarfieldEffect();
 
 	int startupScene = soloMode ? soloScene : SCENE_LOGO;
 	float startupDuration =

@@ -128,10 +128,22 @@ namespace
 		float flow;
 		float morphAmount;
 		float alpha;
+		float whiteRed, whiteGreen, whiteBlue;
+		float patchRed, patchGreen, patchBlue;
 	};
 
 	MorphVertex gMorphMesh
 		[kMorphLatitudeBands + 1][kMorphLongitudeSegments + 1];
+
+	struct MorphSource
+	{
+		float x, y, z;
+		float noise[3][3];
+	};
+
+	MorphSource gMorphSources
+		[kMorphLatitudeBands + 1][kMorphLongitudeSegments + 1];
+	bool gMorphSourcesReady = false;
 
 	void normalizeDirection(float* x, float* y, float* z)
 	{
@@ -216,30 +228,70 @@ namespace
 		);
 	}
 
+	void initializeMorphSources()
+	{
+		if (gMorphSourcesReady)
+			return;
+
+		const float scales[3] = { 1.65f, 3.35f, 6.20f };
+		for (int latitudeBand = 0;
+			latitudeBand <= kMorphLatitudeBands;
+			latitudeBand++)
+		{
+			float latitude =
+				-PI * 0.5f
+				+ PI * (float)latitudeBand / (float)kMorphLatitudeBands;
+			float cosLatitude = cosf(latitude);
+			float sinLatitude = sinf(latitude);
+
+			for (int longitudeSegment = 0;
+				longitudeSegment <= kMorphLongitudeSegments;
+				longitudeSegment++)
+			{
+				float longitude =
+					PI * 2.0f * (float)longitudeSegment
+					/ (float)kMorphLongitudeSegments;
+				MorphSource* source =
+					&gMorphSources[latitudeBand][longitudeSegment];
+				source->x = cosLatitude * cosf(longitude);
+				source->y = sinLatitude;
+				source->z = cosLatitude * sinf(longitude);
+
+				for (int octave = 0; octave < 3; octave++)
+				{
+					unsigned int channelOffset =
+						(unsigned int)octave * 2246822519u;
+					float x = source->x * scales[octave];
+					float y = source->y * scales[octave];
+					float z = source->z * scales[octave];
+					source->noise[octave][0] = valueNoise3D(
+						x, y, z, 1013904223u + channelOffset
+					);
+					source->noise[octave][1] = valueNoise3D(
+						x, y, z, 2654435761u + channelOffset
+					);
+					source->noise[octave][2] = valueNoise3D(
+						x, y, z, 2246822519u + channelOffset
+					);
+				}
+			}
+		}
+
+		gMorphSourcesReady = true;
+	}
+
 	float morphNoise3D(
-		float x,
-		float y,
-		float z,
+		const MorphSource* source,
+		int octave,
 		float firstWeight,
 		float secondWeight,
-		float thirdWeight,
-		unsigned int channel
+		float thirdWeight
 	)
 	{
-		unsigned int channelOffset = channel * 2246822519u;
-		float first = valueNoise3D(
-			x, y, z, 1013904223u + channelOffset
-		);
-		float second = valueNoise3D(
-			x, y, z, 2654435761u + channelOffset
-		);
-		float third = valueNoise3D(
-			x, y, z, 2246822519u + channelOffset
-		);
 		return (
-			first * firstWeight
-			+ second * secondWeight
-			+ third * thirdWeight
+			source->noise[octave][0] * firstWeight
+			+ source->noise[octave][1] * secondWeight
+			+ source->noise[octave][2] * thirdWeight
 		) * 0.69f;
 	}
 
@@ -253,6 +305,7 @@ namespace
 	{
 		int latitudeBand;
 		int longitudeSegment;
+		initializeMorphSources();
 		time *= 1.65f;
 		float cosRotation = cosf(rotationAngle);
 		float sinRotation = sinf(rotationAngle);
@@ -305,24 +358,15 @@ namespace
 			latitudeBand <= kMorphLatitudeBands;
 			latitudeBand++)
 		{
-			float latitude =
-				-PI * 0.5f
-				+ PI * (float)latitudeBand / (float)kMorphLatitudeBands;
-			float cosLatitude = cosf(latitude);
-			float sinLatitude = sinf(latitude);
-
 			for (longitudeSegment = 0;
 				longitudeSegment <= kMorphLongitudeSegments;
 				longitudeSegment++)
 			{
-				float longitude =
-					PI * 2.0f * (float)longitudeSegment
-					/ (float)kMorphLongitudeSegments;
-				float cosLongitude = cosf(longitude);
-				float sinLongitude = sinf(longitude);
-				float ux = cosLatitude * cosLongitude;
-				float uy = sinLatitude;
-				float uz = cosLatitude * sinLongitude;
+				const MorphSource* source =
+					&gMorphSources[latitudeBand][longitudeSegment];
+				float ux = source->x;
+				float uy = source->y;
+				float uz = source->z;
 				float largeMorph =
 					strength1 * morphCap(
 						ux, uy, uz,
@@ -349,16 +393,16 @@ namespace
 						direction6X, direction6Y, direction6Z, 0.18f
 					);
 				float largeNoise = morphNoise3D(
-					ux * 1.65f, uy * 1.65f, uz * 1.65f,
-					firstNoiseWeight, secondNoiseWeight, thirdNoiseWeight, 0u
+					source, 0,
+					firstNoiseWeight, secondNoiseWeight, thirdNoiseWeight
 				);
 				float mediumNoise = morphNoise3D(
-					ux * 3.35f, uy * 3.35f, uz * 3.35f,
-					firstNoiseWeight, secondNoiseWeight, thirdNoiseWeight, 1u
+					source, 1,
+					firstNoiseWeight, secondNoiseWeight, thirdNoiseWeight
 				);
 				float fineNoise = morphNoise3D(
-					ux * 6.20f, uy * 6.20f, uz * 6.20f,
-					firstNoiseWeight, secondNoiseWeight, thirdNoiseWeight, 2u
+					source, 2,
+					firstNoiseWeight, secondNoiseWeight, thirdNoiseWeight
 				);
 				float furrow =
 					1.0f / (1.0f + 26.0f * fineNoise * fineNoise);
@@ -464,86 +508,138 @@ namespace
 		}
 	}
 
+	void buildMorphLighting(
+		float surfaceMorph,
+		const GLfloat* modelView)
+	{
+		for (int latitudeBand = 0;
+			latitudeBand <= kMorphLatitudeBands;
+			latitudeBand++)
+		{
+			for (int longitudeSegment = 0;
+				longitudeSegment <= kMorphLongitudeSegments;
+				longitudeSegment++)
+			{
+				MorphVertex* vertex =
+					&gMorphMesh[latitudeBand][longitudeSegment];
+				// Transform normals without translation so directional light stays
+				// in view space. Do this once per mesh point, not once per triangle.
+				float normalX =
+					modelView[0] * vertex->nx
+					+ modelView[4] * vertex->ny
+					+ modelView[8] * vertex->nz;
+				float normalY =
+					modelView[1] * vertex->nx
+					+ modelView[5] * vertex->ny
+					+ modelView[9] * vertex->nz;
+				float normalZ =
+					modelView[2] * vertex->nx
+					+ modelView[6] * vertex->ny
+					+ modelView[10] * vertex->nz;
+				float normalLength = sqrtf(
+					normalX * normalX
+					+ normalY * normalY
+					+ normalZ * normalZ
+				);
+
+				if (normalLength > 0.000001f)
+				{
+					normalX /= normalLength;
+					normalY /= normalLength;
+					normalZ /= normalLength;
+				}
+
+				float diffuse = clamp01(
+					-normalX * 0.30f
+					+ normalY * 0.48f
+					+ normalZ * 0.82f
+				);
+				float light = 0.18f + diffuse * 0.82f;
+				float sheen = clamp01(
+					-normalX * 0.34f
+					+ normalY * 0.54f
+					+ normalZ * 0.77f
+				);
+				float rim = clamp01(1.0f - fabsf(normalZ));
+				float shapeShade =
+					1.0f
+					- vertex->morphAmount * (1.0f - diffuse) * 0.24f;
+
+				sheen *= sheen;
+				sheen *= sheen;
+				sheen *= sheen;
+				rim *= rim;
+
+				float meteorRed = clamp01(
+					(0.025f + (1.0f - vertex->flow) * 0.075f)
+					* light * shapeShade + sheen * 0.30f + rim * 0.015f
+				);
+				float meteorGreen = clamp01(
+					(0.20f + vertex->flow * 0.52f)
+					* light * shapeShade + sheen * 0.48f + rim * 0.075f
+				);
+				float meteorBlue = clamp01(
+					(0.065f + (1.0f - vertex->flow) * 0.23f)
+					* light * shapeShade + sheen * 0.28f + rim * 0.11f
+				);
+				float checkerLight = 0.30f + diffuse * 0.70f;
+				float checkerSheen = sheen * 0.18f;
+
+				vertex->whiteRed = mixValue(
+					clamp01(0.98f * checkerLight + checkerSheen),
+					meteorRed,
+					surfaceMorph
+				);
+				vertex->whiteGreen = mixValue(
+					clamp01(0.98f * checkerLight + checkerSheen),
+					meteorGreen,
+					surfaceMorph
+				);
+				vertex->whiteBlue = mixValue(
+					clamp01(0.96f * checkerLight + checkerSheen),
+					meteorBlue,
+					surfaceMorph
+				);
+				vertex->patchRed = mixValue(
+					clamp01(0.92f * checkerLight + checkerSheen),
+					meteorRed,
+					surfaceMorph
+				);
+				vertex->patchGreen = mixValue(
+					clamp01(0.025f * checkerLight + checkerSheen),
+					meteorGreen,
+					surfaceMorph
+				);
+				vertex->patchBlue = mixValue(
+					clamp01(0.035f * checkerLight + checkerSheen),
+					meteorBlue,
+					surfaceMorph
+				);
+			}
+		}
+	}
+
 	void drawMorphVertex(
 		int latitudeBand,
 		int longitudeSegment,
-		float surfaceMorph,
-		const GLfloat* modelView,
 		bool redPatch)
 	{
 		const MorphVertex* vertex =
 			&gMorphMesh[latitudeBand][longitudeSegment];
-		// Transform normals without translation so directional light stays in view space.
-		float normalX =
-			modelView[0] * vertex->nx
-			+ modelView[4] * vertex->ny
-			+ modelView[8] * vertex->nz;
-		float normalY =
-			modelView[1] * vertex->nx
-			+ modelView[5] * vertex->ny
-			+ modelView[9] * vertex->nz;
-		float normalZ =
-			modelView[2] * vertex->nx
-			+ modelView[6] * vertex->ny
-			+ modelView[10] * vertex->nz;
-		float normalLength = sqrtf(
-			normalX * normalX + normalY * normalY + normalZ * normalZ
-		);
-
-		if (normalLength > 0.000001f)
-		{
-			normalX /= normalLength;
-			normalY /= normalLength;
-			normalZ /= normalLength;
-		}
-
-		float diffuse = clamp01(
-			-normalX * 0.30f
-			+ normalY * 0.48f
-			+ normalZ * 0.82f
-		);
-		float light = 0.18f + diffuse * 0.82f;
-		float sheen = clamp01(
-			-normalX * 0.34f
-			+ normalY * 0.54f
-			+ normalZ * 0.77f
-		);
-		float rim = clamp01(1.0f - fabsf(normalZ));
-		float shapeShade =
-			1.0f - vertex->morphAmount * (1.0f - diffuse) * 0.24f;
-
-		sheen *= sheen;
-		sheen *= sheen;
-		sheen *= sheen;
-		rim *= rim;
-
-		float meteorRed = clamp01(
-			(0.025f + (1.0f - vertex->flow) * 0.075f)
-			* light * shapeShade + sheen * 0.30f + rim * 0.015f
-		);
-		float meteorGreen = clamp01(
-			(0.20f + vertex->flow * 0.52f)
-			* light * shapeShade + sheen * 0.48f + rim * 0.075f
-		);
-		float meteorBlue = clamp01(
-			(0.065f + (1.0f - vertex->flow) * 0.23f)
-			* light * shapeShade + sheen * 0.28f + rim * 0.11f
-		);
-
-		float checkerLight = 0.30f + diffuse * 0.70f;
-		float checkerRed =
-			(redPatch ? 0.92f : 0.98f) * checkerLight + sheen * 0.18f;
-		float checkerGreen =
-			(redPatch ? 0.025f : 0.98f) * checkerLight + sheen * 0.18f;
-		float checkerBlue =
-			(redPatch ? 0.035f : 0.96f) * checkerLight + sheen * 0.18f;
-
-		glColor4f(
-			mixValue(clamp01(checkerRed), meteorRed, surfaceMorph),
-			mixValue(clamp01(checkerGreen), meteorGreen, surfaceMorph),
-			mixValue(clamp01(checkerBlue), meteorBlue, surfaceMorph),
-			1.0f
-		);
+		if (redPatch)
+			glColor4f(
+				vertex->patchRed,
+				vertex->patchGreen,
+				vertex->patchBlue,
+				1.0f
+			);
+		else
+			glColor4f(
+				vertex->whiteRed,
+				vertex->whiteGreen,
+				vertex->whiteBlue,
+				1.0f
+			);
 		glVertex3f(vertex->x, vertex->y, vertex->z);
 	}
 
@@ -605,6 +701,7 @@ namespace
 		glCullFace(GL_BACK);
 		GLfloat modelView[16];
 		glGetFloatv(GL_MODELVIEW_MATRIX, modelView);
+		buildMorphLighting(surfaceMorph, modelView);
 
 		// Per-triangle field color preserves hard checker edges with smooth lighting.
 		glShadeModel(GL_SMOOTH);
@@ -626,29 +723,23 @@ namespace
 					((checkerLatitude + checkerLongitude) & 1) != 0;
 
 				drawMorphVertex(
-					latitudeBand, longitudeSegment, surfaceMorph,
-					modelView, redPatch
+					latitudeBand, longitudeSegment, redPatch
 				);
 				drawMorphVertex(
-					latitudeBand + 1, longitudeSegment, surfaceMorph,
-					modelView, redPatch
+					latitudeBand + 1, longitudeSegment, redPatch
 				);
 				drawMorphVertex(
-					latitudeBand + 1, longitudeSegment + 1, surfaceMorph,
-					modelView, redPatch
+					latitudeBand + 1, longitudeSegment + 1, redPatch
 				);
 
 				drawMorphVertex(
-					latitudeBand, longitudeSegment, surfaceMorph,
-					modelView, redPatch
+					latitudeBand, longitudeSegment, redPatch
 				);
 				drawMorphVertex(
-					latitudeBand + 1, longitudeSegment + 1, surfaceMorph,
-					modelView, redPatch
+					latitudeBand + 1, longitudeSegment + 1, redPatch
 				);
 				drawMorphVertex(
-					latitudeBand, longitudeSegment + 1, surfaceMorph,
-					modelView, redPatch
+					latitudeBand, longitudeSegment + 1, redPatch
 				);
 			}
 		}
@@ -686,6 +777,11 @@ namespace
 		drawMeteorMorphMesh(time, radius, rotationAngle, 1.0f);
 	}
 
+}
+
+void prepareStarfieldEffect()
+{
+	initializeMorphSources();
 }
 
 void drawStarfieldMeteorMorph(
