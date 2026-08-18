@@ -50,7 +50,7 @@ namespace
 		"CHUDAK",
 		"",
 		"MUSIC:",
-		"AUDIO MONSTERS",
+		"ADIS OMERAGIC",
 		"",
 		"ADDITIONAL CODE:",
 		"KEY REAL",
