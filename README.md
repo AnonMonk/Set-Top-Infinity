@@ -23,7 +23,7 @@ Full demo length: **about 1:41** (101 seconds).
 | 9 | `credits`   | 9 s      | Credits |
 | 10 | `greets`   | 9 s      | Greets |
 
-The Julia is **not** loaded or prepared in stages. Every displayed frame is computed completely at runtime at 384×216. On Intel, four pixels are iterated together with SSE; ARM uses the scalar fallback. Palette lookup tables keep transcendental functions out of the pixel loop, and the finished frame is uploaded as RGB565. The camera moves from the overview to a true preperiodic Julia-boundary point so the deep zoom cannot run into the empty region around the origin. No partially updated frame is ever displayed.
+The Julia is **not** loaded or prepared in stages. Every displayed frame is computed completely at runtime at 512×288. On Intel, four pixels are iterated together with SSE; ARM uses the scalar fallback. Palette lookup tables keep transcendental functions out of the pixel loop, and the finished frame is uploaded as RGB565. The camera moves from the overview to a true preperiodic Julia-boundary point so the deep zoom cannot run into the empty region around the origin. No partially updated frame is ever displayed.
 
 ---
 
@@ -215,7 +215,7 @@ Set-Top-Infinity/
 - **Target FPS:** 60 (`DEMO_FPS`), explicitly frame-paced even when VSync is disabled
 - **Resolution:** 1280×720, fullscreen (`openGLcontext`)
 - **Demo clock:** wall-clock based, pauseable and seekable — scene changes via frame offsets
-- **Julia:** every frame is calculated live at 384×216, using SSE on Intel and a scalar fallback on ARM, then uploaded once as RGB565
+- **Julia:** every frame is calculated live at 512×288, using SSE on Intel and a scalar fallback on ARM, then uploaded once as RGB565
 - **Asset path:** macOS, Linux, and Windows resolve `assets/` relative to the executable, independent of the current working directory
 
 ---

@@ -28,8 +28,8 @@
 
 namespace
 {
-	const int kWidth = 384;
-	const int kHeight = 216;
+	const int kWidth = 512;
+	const int kHeight = 288;
 	const float kZoomDepth = 16.0f;
 	const float kJuliaCRe = -0.8f;
 	const float kJuliaCIm = 0.156f;
