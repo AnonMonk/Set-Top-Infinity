@@ -92,18 +92,10 @@ namespace
 
 	int centeredX(const char* text, aFont font)
 	{
-		if (text == 0 || text[0] == '\0')
-			return 0;
-
 		uint32_t textWidth = 0;
 		uint32_t textHeight = 0;
 		getTextSize(font, text, &textWidth, &textHeight);
 		return (int)((kScreenW - (float)textWidth) * 0.5f);
-	}
-
-	unsigned int titlesGreen()
-	{
-		return RGBA((char)0, (char)255, (char)64, (char)255);
 	}
 
 	void drawScrollingLines(
@@ -121,12 +113,13 @@ namespace
 		const float scroll = animTime * speed;
 		const float y0 = kScreenH + kFontSize * 0.5f - scroll;
 
-		const unsigned int color = titlesGreen();
+		const unsigned int color =
+			RGBA((char)0, (char)255, (char)64, (char)255);
 
 		for (int i = 0; i < lineCount; i++)
 		{
 			const char* line = lines[i];
-			if (line == 0 || line[0] == '\0')
+			if (line[0] == '\0')
 				continue;
 
 			const float y = y0 + (float)i * kLineHeight;
@@ -165,9 +158,9 @@ namespace
 
 void loadFontEndTitles(const char* directory)
 {
-	const std::string fontDirectory = std::string(directory) + "/assets/";
-	loadFont((fontDirectory + "corbel.ttf").c_str(), (int)kFontSize, &titlesFont);
-	loadFont((fontDirectory + "Corbel Bold.ttf").c_str(), (int)kHeadingFontSize, &headingFont);
+	const std::string assetDirectory = std::string(directory) + "/assets/";
+	loadFont((assetDirectory + "corbel.ttf").c_str(), (int)kFontSize, &titlesFont);
+	loadFont((assetDirectory + "Corbel Bold.ttf").c_str(), (int)kHeadingFontSize, &headingFont);
 }
 
 void drawCreditsEffect(float animTime)

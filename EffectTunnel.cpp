@@ -26,8 +26,6 @@ void drawTunnelEffect(GLuint texture, float animTime)
 	float centerX = 0.18f * sinf(effectTime * 0.37f);
 	float centerY = 0.14f * cosf(effectTime * 0.51f);
 
-	
-
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 

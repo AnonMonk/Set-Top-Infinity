@@ -4,7 +4,6 @@
 #include "EffectRotozoom.h"
 
 #include <cmath>
-#include <cstdio>
 #include <string>
 
 #include "vipgfx.h"
@@ -12,9 +11,7 @@
 
 namespace
 {
-
 	aFont logoFont = {};
-
 
 	struct LogoLayout
 	{
@@ -35,6 +32,7 @@ namespace
 	// vscreen can report zero here, so layout uses the fixed context size.
 	const float kScreenW = 1280.0f;
 	const float kScreenH = 720.0f;
+	const float kLogoScale = 2.0f;
 
 	void begin2D()
 	{
@@ -131,7 +129,7 @@ namespace
 
 		float position = seconds * INTRO_ENVELOPE_HZ;
 		int index = (int)position;
-		if (index < 0 || index >= INTRO_ENVELOPE_COUNT)
+		if (index >= INTRO_ENVELOPE_COUNT)
 			return 0.0f;
 
 		int next = index + 1;
@@ -317,18 +315,10 @@ namespace
 			layout.tailH
 		);
 	}
-
-
-	float logoScale()
-	{
-		return 2.0f;
-	}
 }
 
-
-
-
-void loadFontLogo(const char* directory) {
+void loadFontLogo(const char* directory)
+{
 	const std::string fontPath = std::string(directory) + "/assets/corbel.ttf";
 	loadFont(fontPath.c_str(), 64, &logoFont);
 }
@@ -343,14 +333,12 @@ void drawLogoIntroEffect(
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	begin2D();
 
-	float scale = logoScale();
-
 	drawOscFishLogo(
 		headTexture,
 		tailTexture,
 		kScreenW * 0.5f,
 		kScreenH * 0.5f,
-		scale,
+		kLogoScale,
 		animTime
 	);
 
@@ -365,7 +353,7 @@ void drawLogoIntroEffect(
 	const float estimatedTextW = 23.0f * fontSize * 0.38f;
 	const int textX = (int)((kScreenW - estimatedTextW) * 0.5f);
 
-	float progress = (flyDuration > 0.0f) ? (animTime / flyDuration) : 1.0f;
+	float progress = animTime / flyDuration;
 	if (progress < 0.0f) progress = 0.0f;
 	if (progress > 1.0f) progress = 1.0f;
 	float eased = progress * progress * (3.0f - 2.0f * progress);
@@ -388,7 +376,6 @@ void drawLogoTransitionEffect(
 	drawRotozoomerBase(rotoTexture, rotoAnimTime);
 	begin2D();
 
-	float scale = logoScale();
 	float progress = (duration > 0.0f) ? animTime / duration : 0.0f;
 	if (progress < 0.0f) progress = 0.0f;
 	if (progress > 1.0f) progress = 1.0f;
@@ -398,8 +385,11 @@ void drawLogoTransitionEffect(
 	float waveAmp = 6.0f + eased * 90.0f;
 	float logoShiftX =
 		sinf(animTime * 9.0f) * (4.0f + eased * 16.0f);
-	LogoLayout layout =
-		getLogoLayout(kScreenW * 0.5f + logoShiftX, kScreenH * 0.5f, scale);
+	LogoLayout layout = getLogoLayout(
+		kScreenW * 0.5f + logoShiftX,
+		kScreenH * 0.5f,
+		kLogoScale
+	);
 
 	drawTexturedQuadWavy(
 		headTexture,

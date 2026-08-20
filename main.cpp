@@ -111,7 +111,8 @@ bool mainMusicReady = false;
 #endif
 
 
-string getExecutableDir(char** argv) {
+string getExecutableDir(char** argv)
+{
 #ifdef _WIN32
 	char path[MAX_PATH];
 	DWORD length = GetModuleFileNameA(NULL, path, MAX_PATH);
@@ -156,7 +157,8 @@ string getExecutableDir(char** argv) {
 }
 
 
-void stopSound(pid_t* process) {
+void stopSound(pid_t* process)
+{
 #ifdef _WIN32
 	// PlaySound controls one global channel, so the process handle is irrelevant.
 	(void)process;
@@ -169,7 +171,8 @@ void stopSound(pid_t* process) {
 #endif
 }
 
-void stopAllAudio() {
+void stopAllAudio()
+{
 #ifdef _WIN32
 	PlaySoundA(NULL, NULL, 0);
 	introAudioProcess = -1;
@@ -185,13 +188,14 @@ void stopAllAudio() {
 }
 
 
-bool playSound(const string& filename, pid_t* process) {
-
-if (!playaudio) {
-	if (process != NULL)
-		*process = -1;
-	return true;
-}
+bool playSound(const string& filename, pid_t* process)
+{
+	if (!playaudio)
+	{
+		if (process != NULL)
+			*process = -1;
+		return true;
+	}
 
 #ifdef _WIN32
 	if (!PlaySoundA(filename.c_str(), NULL, SND_ASYNC | SND_FILENAME | SND_NODEFAULT)) {
@@ -229,7 +233,8 @@ if (!playaudio) {
 }
 
 
-GLuint loadTextureRGBA(const string& filename, bool repeatMode) {
+GLuint loadTextureRGBA(const string& filename, bool repeatMode)
+{
 
 	gfxImage pic = { 0, 0, 0 };
 	if (!pngLoad(pic, filename.c_str()))
@@ -295,7 +300,8 @@ void getSceneState(int totalFrame, int* scene, int* localFrame)
 }
 
 
-int totalDemoFrames() {
+int totalDemoFrames()
+{
 	int total = 0;
 	for (int i = 0; i < SCENE_COUNT; i++) {
 		if (sceneLength[i] > 0)
@@ -364,8 +370,6 @@ void printUsage()
 
 int parseSceneName(const char* name)
 {
-	int n;
-
 	if (name == NULL || name[0] == '\0')
 		return -1;
 
@@ -407,11 +411,6 @@ int parseSceneName(const char* name)
 		strcasecmp(name, "greet") == 0 ||
 		strcasecmp(name, "greetz") == 0)
 		return SCENE_GREETS;
-
-	for (n = 0; n < SCENE_COUNT; n++) {
-		if (strcasecmp(name, sceneNames[n]) == 0)
-			return n;
-	}
 
 	return -1;
 }
@@ -533,7 +532,8 @@ void drawScene(
 }
 
 
-bool update() {
+bool update()
+{
 
 	tickDemoClock();
 
@@ -628,7 +628,6 @@ bool update() {
 
 void loadDemoTextures(const string& directory)
 {
-	
 	glEnable(GL_TEXTURE_2D);
 
 	rotoTexture = loadTextureRGBA(directory + "/assets/Testbild.png", true);
@@ -654,12 +653,10 @@ void loadDemoTextures(const string& directory)
 		printf("can't load Schwanz_transparent.png\n");
 		exit(0);
 	}
-
 }
 
-
-
-int main(int argc, char** argv) {
+int main(int argc, char** argv)
+{
 
 	int i;
 

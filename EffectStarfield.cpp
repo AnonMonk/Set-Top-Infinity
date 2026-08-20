@@ -1,7 +1,5 @@
 #include "EffectStarfield.h"
 
-
-
 #include <cmath>
 #include "vipgfx.h"
 
