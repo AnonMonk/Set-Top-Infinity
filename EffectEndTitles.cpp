@@ -12,6 +12,7 @@
 #endif
 
 #include <cmath>
+#include <string>
 
 #include "glTTF.h"
 #include "vipgfx.h"
@@ -162,10 +163,11 @@ namespace
 	}
 }
 
-void loadFontEndTitles()
+void loadFontEndTitles(const char* directory)
 {
-	loadFont("./assets/corbel.ttf", (int)kFontSize, &titlesFont);
-	loadFont("./assets/Corbel Bold.ttf", (int)kHeadingFontSize, &headingFont);
+	const std::string fontDirectory = std::string(directory) + "/assets/";
+	loadFont((fontDirectory + "corbel.ttf").c_str(), (int)kFontSize, &titlesFont);
+	loadFont((fontDirectory + "Corbel Bold.ttf").c_str(), (int)kHeadingFontSize, &headingFont);
 }
 
 void drawCreditsEffect(float animTime)

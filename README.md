@@ -219,7 +219,3 @@ Set-Top-Infinity/
 - **Asset path:** macOS, Linux, and Windows resolve `assets/` relative to the executable, independent of the current working directory
 
 ---
-
-## License / origin
-
-Demoscene project (working / earlier name: *demomac*). Use bundled `vipgfx`/`glTTF` binaries and assets according to their respective original licenses.

@@ -713,8 +713,8 @@ int main(int argc, char** argv) {
 	executableDirectory = getExecutableDir(argv);
 
 	loadDemoTextures(executableDirectory);
-	loadFontLogo();
-	loadFontEndTitles();
+	loadFontLogo(executableDirectory.c_str());
+	loadFontEndTitles(executableDirectory.c_str());
 	prepareStarfieldEffect();
 
 	int startupScene = soloMode ? soloScene : SCENE_LOGO;

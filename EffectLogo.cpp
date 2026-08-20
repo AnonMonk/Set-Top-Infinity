@@ -5,6 +5,7 @@
 
 #include <cmath>
 #include <cstdio>
+#include <string>
 
 #include "vipgfx.h"
 #include "glTTF.h"
@@ -327,8 +328,9 @@ namespace
 
 
 
-void loadFontLogo() {
-	loadFont("./assets/corbel.ttf", 64, &logoFont);
+void loadFontLogo(const char* directory) {
+	const std::string fontPath = std::string(directory) + "/assets/corbel.ttf";
+	loadFont(fontPath.c_str(), 64, &logoFont);
 }
 
 void drawLogoIntroEffect(

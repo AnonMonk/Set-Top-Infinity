@@ -27,6 +27,6 @@ void drawLogoTransitionEffect(
 	float rotoAnimTime
 );
 
-void loadFontLogo();
+void loadFontLogo(const char* directory);
 
 #endif
